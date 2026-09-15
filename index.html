@@ -743,9 +743,9 @@ header{padding:20px 18px 10px}
     </div>
   </details>
   <details class="report-card collapsible" id="growthPurchaseCard">
-    <summary><span>🚀 Crecimiento y compras</span></summary>
+    <summary><span>🚀 Crecimiento</span></summary>
     <div class="collapse-body">
-      <p style="margin-bottom:10px">Resumen detallado de qué conviene comprar, sin mostrar aquí el contador del ciclo.</p>
+      <p style="margin-bottom:10px">Notas y consejos de crecimiento según cómo va el negocio.</p>
       <div id="smartReport"></div>
     </div>
   </details>
@@ -1581,6 +1581,7 @@ function finishSetup(){
  delete state.growthCycle.lastOrderDate;
  state.products.forEach(p=>{p.initialStock=JSON.parse(JSON.stringify(p.stock||{}));});
  state.initialInventoryPieces=state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(p.stock[s]||0),0),0);
+ state.registeredPieces=state.initialInventoryPieces;
  if(!state.days)state.days={};
  if(!state.days[d])state.days[d]={date:d,closed:false,movements:[]};
  save();
@@ -1686,6 +1687,7 @@ function saveProduct(){
  }
 
  state.products.push(p);
+ if(!setupMode){ state.registeredPieces=(Number(state.registeredPieces)||0)+Object.values(stock).reduce((a,v)=>a+(Number(v)||0),0); }
 
  save();
 
@@ -2205,6 +2207,14 @@ function totalPieces(){
 
 }
 
+function ensureRegisteredPieces(){
+ if(!state)return;
+ if(Number.isFinite(Number(state.registeredPieces))){return;}
+ const sold=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
+ state.registeredPieces=Math.max(0,totalPieces()+sold);
+ save();
+}
+
 function renderInventory(){
  const e=document.getElementById("inventoryList");
  const summary=document.getElementById("inventoryTotalSummary");
@@ -2222,12 +2232,12 @@ function renderInventory(){
    <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
- const savedInitial=Number(state.initialInventoryPieces);
- const initialTotal=Number.isFinite(savedInitial)?savedInitial:state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
+ ensureRegisteredPieces();
+ const registered=Number(state.registeredPieces)||0;
  const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
  const currentTotal=totalPieces();
- const expected=Math.max(0,initialTotal-soldTotal);
- if(summary)summary.innerHTML=`<div style="font-weight:900;margin-bottom:10px">RESUMEN DEL INVENTARIO</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS EN TOTAL INICIALES</div><strong style="font-size:20px">${initialTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS VENDIDAS</div><strong style="font-size:20px">${soldTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">DEBERÍA HABER</div><strong style="font-size:20px">${expected}</strong><div style="font-size:11px;color:#777">Actualmente hay ${currentTotal}</div></div></div>`;
+ const expected=Math.max(0,registered-soldTotal);
+ if(summary)summary.innerHTML=`<div style="font-weight:900;margin-bottom:10px">RESUMEN DEL INVENTARIO</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS REGISTRADAS</div><strong style="font-size:20px">${registered}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS VENDIDAS</div><strong style="font-size:20px">${soldTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">DEBERÍA HABER</div><strong style="font-size:20px">${expected}</strong><div style="font-size:11px;color:#777">Actualmente hay ${currentTotal}</div></div></div>`;
 }
 
 function openEditProduct(id){
@@ -2760,6 +2770,8 @@ function createOrder(){
  if(total===0){
   items.forEach(item=>{const p=state.products.find(x=>x.id===item.productId);if(!p)return;SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities[size])||0));});
   order.received=true;order.status="received";order.receivedDate=today();
+  state.registeredPieces=(Number(state.registeredPieces)||0)+Number(order.pieces||0);
+  order.registered=true;
  }
  ensureGrowthData();state.growthCycle.lastOrderDate=today();
  day().movements.push({id:crypto.randomUUID(),type:"order",concept:`Compra mercancía — Pedido #${String(order.number).padStart(3,"0")}`,amount:total,orderId:order.id,timestamp:Date.now(),time:timeNow()});
@@ -3147,7 +3159,7 @@ function renderStatistics(){
  const ph=cyclePhase(r.elapsed); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${Math.min(50,r.c.pieces)} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
  const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
- e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed).cls} cycle-blink">●</span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
+ e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed).cls} cycle-blink"></span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
 }
 
 function monthlyFinancialAnalysis(){
@@ -3252,7 +3264,7 @@ function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN"){
   const demand=(g.items||[]).reduce((a,x)=>a+Number(x.demandPurchase||0),0);
   return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Vendidas: ${sold} · Demanda adicional: ${demand}</div></div>`;
  }).join(""):'<div class="analysis-note">No hay ventas ni demanda registrada en este ciclo.</div>';
- return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div><div class="analysis-note"><strong>Regla:</strong> Reponer = exactamente lo vendido, descontando únicamente lo que ya está pedido/en tránsito. La demanda se mantiene separada.</div>`;
+ return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div><div class="analysis-note"><strong>Nota:</strong> Este reporte refleja las observaciones del negocio según las ventas, la demanda y los pedidos registrados hasta este momento. La reposición se calcula con esos datos y no cierra el ciclo.</div>`;
 }
 
 function renderCycleHistory(){
@@ -3269,8 +3281,23 @@ function renderCycleHistory(){
 
 function renderGrowthReport(){
  const e=document.getElementById("smartReport");if(!e)return;
- finalizeCurrentCycleIfDue();
+ ensureGrowthData();
  const r=growthPurchaseAnalysis();
+ const sold=r.c.pieces||0;
+ const debt=currentDebt();
+ const available=cash();
+ const top=(r.groupedItems||[]).flatMap(g=>(g.items||[]).map(x=>({name:g.name,size:x.size,sold:Number(x.sold||0)}))).sort((a,b)=>b.sold-a.sold)[0];
+ const notes=[];
+ if(top&&top.sold>0) notes.push(`Esta playera fue una de las que más se movió: ${esc(top.name)} talla ${esc(top.size)}. Te recomiendo considerar ${Math.max(2,top.sold)} pieza${Math.max(2,top.sold)===1?'':'s'} para crecimiento.`);
+ else notes.push('Todavía no hay suficientes ventas en el ciclo para detectar una playera con mayor movimiento. Sigue registrando las ventas.');
+ if(debt>0) notes.push(`Tienes ${money(debt)} en pagos pendientes. Conviene considerar un abono sin comprometer el dinero necesario para operar.`);
+ else notes.push('No tienes pagos pendientes registrados. Si el flujo de caja lo permite, puedes reservar parte del dinero para una próxima compra o para crecimiento.');
+ if(available>=5500) notes.push('El flujo disponible permite considerar apartar $5,500 para el arriendo antes de destinar dinero adicional a crecimiento.');
+ else notes.push('Antes de hacer compras de crecimiento, conviene cuidar primero el dinero necesario para los gastos fijos del negocio.');
+ e.innerHTML=`<div class="analysis-note"><strong>NOTAS Y CONSEJOS DE CRECIMIENTO</strong><br>Estas observaciones se generan según cómo va el negocio en este momento.</div>${notes.map(n=>`<div class="analysis-note" style="margin-top:8px">💡 ${n}</div>`).join('')}`;
+ renderCycleHistory();
+}
+
 function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
@@ -3335,10 +3362,6 @@ function renderDebt(){
  ensurePendingDebts();
  const pending=currentDebt();
  e.innerHTML=`<div onclick="openDebtPanel()" style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">Toca para ver los pagos pendientes</div></div><span style="font-size:12px;font-weight:900;color:#111">›</span></div>`;
-}
-
-
- renderCycleHistory();
 }
 
 /* =========================
@@ -3609,7 +3632,7 @@ function renderHomeCycle(){
  const elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1));
  const ph=cyclePhase(elapsed);
  const sales=Math.min(50,c.pieces);
- e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink">●</span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div></div></details>`;
+ e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink"></span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div></div></details>`;
 }
 
 function refreshHomeSales(){
