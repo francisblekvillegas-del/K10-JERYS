@@ -2062,7 +2062,7 @@ function renderDebt(){
  const e=document.getElementById("debtCard");
  if(!e)return;
  const pending=currentDebt();
- e.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">${pending>0?'Pendiente de pago':'Sin pago pendiente'}</div></div>${pending>0?`<div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end"><button class="btn dark" onclick="openDebtPayment()">ABONAR</button><button class="btn light" onclick="openNewDebt()">NUEVO PAGO PENDIENTE</button></div>`:`<span style="font-size:12px;font-weight:800;color:#16803c">PAGADA</span>`}</div>`;
+ e.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">${pending>0?'Pendiente de pago':'Sin pago pendiente'}</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end"><button class="btn dark" onclick="openDebtPayment()" ${pending<=0?'disabled':''}>ABONAR</button><button class="btn light" onclick="openNewDebt()">NUEVO PAGO PENDIENTE</button></div></div>`;
 }
 
 /* =========================
@@ -2305,8 +2305,14 @@ function renderInventory(){
    <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
- const initialTotal=Number(state.initialInventoryPieces)!=null?Number(state.initialInventoryPieces):state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(p.initialStock?.[s]||0),0),0);
- const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
+ const rawInitial=Number(state.initialInventoryPieces);
+ const initialTotal=Number.isFinite(rawInitial)&&rawInitial>=0
+  ?rawInitial
+  :state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number.isFinite(Number(p.initialStock?.[s]))?Number(p.initialStock?.[s]):0),0),0);
+ const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>{
+  const q=Number(m.quantity??m.pieces??0);
+  return a+(Number.isFinite(q)&&q>=0?q:0);
+ },0);
  const currentTotal=totalPieces();
  const expected=Math.max(0,initialTotal-soldTotal);
  if(summary)summary.innerHTML=`<div style="font-weight:900;margin-bottom:10px">RESUMEN DEL INVENTARIO</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS EN TOTAL INICIALES</div><strong style="font-size:20px">${initialTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS VENDIDAS</div><strong style="font-size:20px">${soldTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">DEBERÍA HABER</div><strong style="font-size:20px">${expected}</strong><div style="font-size:11px;color:#777">Actualmente hay ${currentTotal}</div></div></div>`;
@@ -3749,10 +3755,11 @@ function renderGrowthReport(){
  const e=document.getElementById("smartReport");if(!e)return;
  finalizeCurrentCycleIfDue();
  const r=growthPurchaseAnalysis();
- const pendingList=r.items.filter(x=>x.recommended>0).slice(0,20);
- const purchaseText=pendingList.length?pendingList.map(x=>`<div class="report-line"><span><strong>${esc(x.name)} ${esc(x.size)}</strong><br><small>Vendidas: ${x.sold||0} · Reponer: ${x.replenish||0} · Demanda: ${x.demand||0} · Ya pedido: ${x.alreadyOrdered||0}</small></span><strong>${x.recommended||0}</strong></div>`).join(""):'<div class="analysis-note">No hay piezas pendientes de compra por ventas o demanda.</div>';
  const growth=r.growthCapital>0?`Hay capacidad estimada para crecimiento después de cubrir reposiciones y obligaciones. Capital disponible para crecimiento: ${money(r.growthCapital)}.`:'Por ahora no se recomienda forzar crecimiento adicional; primero se cubren reposiciones y obligaciones.';
- e.innerHTML=`<div class="analysis-note"><strong>RESUMEN DE COMPRA</strong><br>${r.totalReplenishment} piezas de reposición · ${r.totalDemand} piezas por demanda · ${r.pendingPieces} piezas ya están en pedidos pendientes.</div><div class="card" style="margin-top:10px;padding:12px"><div style="font-weight:900;margin-bottom:8px">LO QUE FALTA PEDIR</div>${purchaseText}</div><div class="analysis-note"><strong>CRECIMIENTO:</strong> ${growth}</div>`;
+ const chartMax=Math.max(1,r.totalReplenishment,r.totalDemand,r.pendingPieces);
+ const bar=(label,value,cls)=>`<div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800"><span>${label}</span><strong>${value}</strong></div><div style="height:10px;background:#e9e9e9;border-radius:99px;overflow:hidden;margin-top:4px"><div style="height:100%;width:${Math.round((value/chartMax)*100)}%;background:${cls};border-radius:99px"></div></div></div>`;
+ const purchaseState=r.totalRecommended>0?'🟠 HAY COMPRA PENDIENTE':'🟢 NO HAY COMPRA PENDIENTE';
+ e.innerHTML=`<div class="analysis-note"><strong>RESUMEN DE COMPRA</strong><br>${purchaseState}<br><span style="font-size:12px">Aquí no se repiten equipos ni tallas; solo se muestra el resumen para saber cuánto comprar.</span></div><div class="card" style="margin-top:10px;padding:12px"><div style="font-weight:900;margin-bottom:8px">RESUMEN VISUAL</div>${bar('Reposición por ventas',r.totalReplenishment,'#f59e0b')}${bar('Demanda adicional',r.totalDemand,'#3b82f6')}${bar('Ya pedido / en tránsito',r.pendingPieces,'#22c55e')}</div><div class="analysis-note"><strong>CRECIMIENTO:</strong> ${growth}</div><div class="analysis-note" style="margin-top:8px"><strong>¿DÓNDE VERÉ LO QUE DEBO COMPRAR?</strong><br>Cuando el ciclo llegue a 50 piezas vendidas o 14 días, K10 CONTROL cerrará ese ciclo y guardará el reporte completo en <strong>Reportes → Historial de ciclos cerrados</strong>. Ahí aparecerá exactamente lo vendido, lo que se debe reponer, la demanda, lo ya pedido/en tránsito y lo que todavía falta pedir.</div>`;
  renderCycleHistory();
 }
 
