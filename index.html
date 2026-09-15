@@ -1522,15 +1522,6 @@ function save(){
 
 }
 
-function uid(){
- try{
-  if(window.crypto && typeof window.crypto.randomUUID==="function"){
-   return window.uid();
-  }
- }catch(e){}
- return "k10-"+Date.now()+"-"+Math.random().toString(36).slice(2,10);
-}
-
 function esc(x){
 
  return String(x)
@@ -1545,6 +1536,11 @@ function esc(x){
 
  .replaceAll("'","&#039;");
 
+}
+
+function makeK10Id(){
+  try{ if(window.crypto && typeof window.crypto.randomUUID === "function") return window.makeK10Id(); }catch(e){}
+  return "k10_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)+"_"+Math.random().toString(36).slice(2);
 }
 
 function openModal(id){
@@ -1758,7 +1754,7 @@ function saveProduct(){
 
  const p={
 
-  id:uid(),
+  id:makeK10Id(),
 
   name,
 
@@ -2030,7 +2026,7 @@ function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
  if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
-  state.pendingDebts.push({id:uid(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+  state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
  }
 }
 function currentDebt(){
@@ -2067,9 +2063,9 @@ function openDebtPayment(id){
  if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
  d.remaining=Math.max(0,pending-amount);
  if(d.remaining===0)d.status="paid";
- day().movements.push({id:uid(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
+ day().movements.push({id:makeK10Id(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:uid(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ state.debtPayments.push({id:makeK10Id(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
  save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
 }
 function openNewDebt(){
@@ -2080,7 +2076,7 @@ function openNewDebt(){
  if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
  ensurePendingDebts();
  const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
- state.pendingDebts.push({id:uid(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
  state.initialDebt=Number(state.initialDebt)||0;
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
  save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
@@ -2166,7 +2162,7 @@ function saveMovement(){
 
  day().movements.push({
 
-  id:uid(),
+  id:makeK10Id(),
 
   type:movementType,
 
@@ -2261,7 +2257,7 @@ function saveSale(){
 
  day().movements.push({
 
-  id:uid(),
+  id:makeK10Id(),
 
   type:"sale",
 
@@ -2306,8 +2302,11 @@ function saveSale(){
 function totalPieces(){
 
  return state.products.reduce((total,p)=>
+
   total+
-  SIZES.reduce((a,s)=>a+(Number(p.stock?.[s])||0),0)
+
+  SIZES.reduce((a,s)=>a+(p.stock[s]||0),0)
+
  ,0);
 
 }
@@ -2329,10 +2328,7 @@ function renderInventory(){
    <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
- const storedInitial=Number(state.initialInventoryPieces);
- const initialTotal=Number.isFinite(storedInitial)
-  ?storedInitial
-  :state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
+ const storedInitial=Number(state.initialInventoryPieces); const initialTotal=Number.isFinite(storedInitial)?storedInitial:state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||Number(p.stock?.[s])||0),0),0);
  const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
  const currentTotal=totalPieces();
  const expected=Math.max(0,initialTotal-soldTotal);
@@ -2380,7 +2376,7 @@ function quickSale(id,s){
 
  day().movements.push({
 
-  id:uid(),
+  id:makeK10Id(),
 
   type:"sale",
 
@@ -2570,7 +2566,7 @@ function saveAdjustment(){
 
    day().movements.push({
 
-    id:uid(),
+    id:makeK10Id(),
 
     type:"inventory_adjustment",
 
@@ -2696,10 +2692,10 @@ function createApartado(){
   if((q[size]||0)>(p.stock[size]||0))return alert(`No hay suficientes piezas talla ${size}. Disponible: ${p.stock[size]||0}.`);
  }
  SIZES.forEach(size=>{p.stock[size]=(p.stock[size]||0)-(q[size]||0);});
- const a={id:uid(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
+ const a={id:makeK10Id(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
  state.apartados.push(a);
  if(deposit>0){
-  day().movements.push({id:uid(),type:"income",concept:`Anticipo apartado #${String(a.number).padStart(3,"0")} — ${p.name}`,amount:deposit,apartadoId:a.id,timestamp:Date.now(),time:timeNow()});
+  day().movements.push({id:makeK10Id(),type:"income",concept:`Anticipo apartado #${String(a.number).padStart(3,"0")} — ${p.name}`,amount:deposit,apartadoId:a.id,timestamp:Date.now(),time:timeNow()});
  }
  save(); closeModal("apartadoModal"); render();
  alert(`Apartado #${String(a.number).padStart(3,"0")} creado.\n\n${pieces} piezas bajaron del inventario.`);
@@ -2712,7 +2708,7 @@ function finishApartado(id){
  const remaining=Math.max(0,Number(a.total)-Number(a.deposit));
  if(!confirm(`¿Marcar apartado #${String(a.number).padStart(3,"0")} como PAGADO?\n\nResta por cobrar: ${money(remaining)}`))return;
  if(remaining>0){
-  day().movements.push({id:uid(),type:"sale",concept:`Pago final apartado #${String(a.number).padStart(3,"0")} — ${a.productName}`,amount:remaining,apartadoId:a.id,productId:a.productId,productName:a.productName,quantity:a.pieces,pieces:a.pieces,unitCost:(state.products.find(p=>p.id===a.productId)?.cost||0),timestamp:Date.now(),time:timeNow()});
+  day().movements.push({id:makeK10Id(),type:"sale",concept:`Pago final apartado #${String(a.number).padStart(3,"0")} — ${a.productName}`,amount:remaining,apartadoId:a.id,productId:a.productId,productName:a.productName,quantity:a.pieces,pieces:a.pieces,unitCost:(state.products.find(p=>p.id===a.productId)?.cost||0),timestamp:Date.now(),time:timeNow()});
  }
  a.status="paid"; a.paidDate=today(); a.remaining=0;
  save(); render();
@@ -2971,7 +2967,7 @@ function createOrder(){
 
   const newProduct={
 
-   id:uid(),
+   id:makeK10Id(),
 
    name:productName,
 
@@ -2997,7 +2993,7 @@ function createOrder(){
 
  const order={
 
-  id:uid(),
+  id:makeK10Id(),
 
   number:state.orders.length+1,
 
@@ -3040,7 +3036,7 @@ function createOrder(){
 
  day().movements.push({
 
-  id:uid(),
+  id:makeK10Id(),
 
   type:"order",
 
@@ -3104,7 +3100,7 @@ function receiveOrder(id){
 
   p={
 
-   id:uid(),
+   id:makeK10Id(),
 
    name:o.productName,
 
@@ -3494,7 +3490,7 @@ function payWorker(){
 
  day().movements.push({
 
-  id:uid(),
+  id:makeK10Id(),
 
   type:"worker",
 
@@ -3635,7 +3631,7 @@ function getDemandSummary(){
 
 function demandOpportunityLabel(x){const cycles=Object.keys(x.cycles||{}).length;if(x.count>=10||cycles>=3)return"🚀 OPORTUNIDAD FUERTE DE CRECIMIENTO";if(x.count>=5||cycles>=2)return"🔥 OPORTUNIDAD DE CRECIMIENTO";if(x.count>=3)return"🟡 EVALUAR";return"👀 OBSERVAR";}
 function openDemandModal(){ensureGrowthData();document.getElementById("demandName").value="";document.getElementById("demandSize").value="Todas";document.getElementById("demandQuantity").value=1;document.getElementById("demandCategory").value="Equipo";document.getElementById("demandNote").value="";openModal("demandModal");}
-function saveMarketDemand(){ensureGrowthData();const name=document.getElementById("demandName").value.trim();const quantity=Math.max(1,Number(document.getElementById("demandQuantity").value)||0);if(!name||quantity<=0)return alert("Completa producto y cantidad.");state.marketDemand.push({id:uid(),date:today(),cycle:state.growthCycle.cycle||1,name,size:document.getElementById("demandSize").value,quantity,category:document.getElementById("demandCategory").value,note:document.getElementById("demandNote").value.trim()});save();closeModal("demandModal");render();}
+function saveMarketDemand(){ensureGrowthData();const name=document.getElementById("demandName").value.trim();const quantity=Math.max(1,Number(document.getElementById("demandQuantity").value)||0);if(!name||quantity<=0)return alert("Completa producto y cantidad.");state.marketDemand.push({id:makeK10Id(),date:today(),cycle:state.growthCycle.cycle||1,name,size:document.getElementById("demandSize").value,quantity,category:document.getElementById("demandCategory").value,note:document.getElementById("demandNote").value.trim()});save();closeModal("demandModal");render();}
 function deleteMarketDemand(name){
  const clean=String(name||"").trim().toLowerCase();
  if(!clean)return;
@@ -3648,6 +3644,175 @@ function renderMarketDemandReport(){
  const d=getDemandSummary().slice(0,8);
  e.innerHTML=d.length?d.map(x=>`<div class="report-line"><div style="flex:1"><strong>${esc(x.name)}</strong><br><small>${esc(x.category)} · ${x.count} solicitud${x.count===1?'':'es'} · ${demandOpportunityLabel(x)}</small></div><button class="btn light" style="padding:7px 10px;font-size:11px" onclick='deleteMarketDemand(${JSON.stringify(x.name).replace(/'/g,'&#39;')})'>QUITAR</button></div>`).join(''):'<div class="analysis-note">Todavía no hay demandas registradas.</div>';
 }
+function pendingOrderQuantities(){
+ const pending={};
+ (state.orders||[]).filter(o=>!o.received).forEach(o=>{
+  const productKey=String(o.productId||'NEW:'+String(o.productName||'').trim().toLowerCase());
+  SIZES.forEach(size=>{
+   const qty=Number(o.quantities?.[size]||0);
+   if(qty>0){
+    const key=productKey+'|'+size;
+    pending[key]=(pending[key]||0)+qty;
+   }
+  });
+ });
+ return pending;
+}
+function growthPurchaseAnalysis(){
+ ensureGrowthData();
+ const c=cycleSales(), pending=pendingOrderQuantities(), by={};
+ c.sales.forEach(m=>{
+  const key=String(m.productId||"")+"|"+String(m.size||"");
+  if(!by[key]){const p=state.products.find(x=>x.id===m.productId);by[key]={productId:m.productId,name:m.productName,size:m.size||"Sin talla",sold:0,unitCost:Number(m.unitCost)||Number(p?.cost)||0};}
+  by[key].sold+=Number(m.quantity||m.pieces||0);
+ });
+ const demand=getDemandSummary();
+ demand.forEach(d=>{
+  if(d.size==="Todas")return;
+  const p=state.products.find(x=>x.name.trim().toLowerCase()===d.name.trim().toLowerCase());
+  const productId=p?.id||("NEW:"+d.name.trim().toLowerCase());
+  const key=productId+"|"+d.size;
+  if(!by[key])by[key]={productId:p?.id||null,name:d.name,size:d.size,sold:0,unitCost:Number(p?.cost)||0};
+  by[key].demand=(by[key].demand||0)+d.count;
+ });
+ const elapsed=Math.max(0,daysBetweenKeys(c.start,c.end)+1);
+ const items=Object.values(by).map(x=>{
+  const product=state.products.find(p=>p.id===x.productId);
+  const stock=Number(product?.stock?.[x.size])||0;
+  const productKey=x.productId?String(x.productId):"NEW:"+x.name.trim().toLowerCase();
+  const alreadyOrdered=Number(pending[productKey+"|"+x.size]||0);
+  const salesNeed=Math.max(0,Number(x.sold)||0);
+  const demandNeed=Math.max(0,Number(x.demand)||0);
+  const replenish=Math.max(0,salesNeed-alreadyOrdered);
+  const demandPurchase=Math.max(0,demandNeed-Math.max(0,alreadyOrdered-salesNeed));
+  const recommended=replenish+demandPurchase;
+  const fast=salesNeed>=10;
+  return {...x,stock,alreadyOrdered,replenish,demand:demandNeed,demandPurchase,recommended,fast,priority:recommended>0?(salesNeed>0?'REPOSICIÓN':'DEMANDA'):'OBSERVAR',priorityClass:recommended>0?(salesNeed>0?'orange':'blue'):'green'};
+ }).filter(x=>x.sold>0||x.demand>0);
+ items.sort((a,b)=>b.recommended-a.recommended||b.sold-a.sold||b.demand-a.demand||a.name.localeCompare(b.name));
+ const mandatoryCost=items.reduce((a,x)=>a+x.replenish*Number(x.unitCost||0),0);
+ const availableCash=Math.max(0,Number(cash())||0);
+ const debt=currentDebt();
+ const cashAfterDebt=Math.max(0,availableCash-debt);
+ const growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
+ const totalReplenishment=items.reduce((a,x)=>a+x.replenish,0);
+ const totalDemand=items.reduce((a,x)=>a+x.demandPurchase,0);
+ const totalRecommended=items.reduce((a,x)=>a+x.recommended,0);
+ const salesReached50=c.pieces>=50;
+ const daysReached14=elapsed>=14;
+ const due=salesReached50||daysReached14;
+ const overallPriority=due?'🟠 REVISAR PEDIDO':'🟢 CICLO EN CURSO';
+ const overallClass=due?'orange':'green';
+ const grouped={};items.forEach(x=>{const k=x.productId||('new:'+x.name.toLowerCase());if(!grouped[k])grouped[k]={name:x.name,items:[]};grouped[k].items.push(x);});
+ const groupedItems=Object.values(grouped);
+ const inv=currentInventoryAnalysis();
+ let growthTarget=400;if(inv.pieces>=400)growthTarget=Math.ceil(inv.pieces/50)*50+50;
+ const pendingOrders=(state.orders||[]).filter(o=>!o.received);
+ const pendingPieces=pendingOrders.reduce((a,o)=>a+Number(o.pieces||0),0);
+ return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand,mandatoryCost,availableCash,debt,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
+}
+
+function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN"){
+ const sizes=SIZES;
+ const groups=r.groupedItems.length?r.groupedItems.map(g=>{
+  const sizeCells=sizes.map(sz=>{
+   const x=(g.items||[]).find(i=>i.size===sz);
+   return `<div style="text-align:center;min-width:38px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${x?Number(x.recommended||0):0}</div></div>`;
+  }).join("");
+  const total=(g.items||[]).reduce((a,x)=>a+Number(x.recommended||0),0);
+  const sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0);
+  const demand=(g.items||[]).reduce((a,x)=>a+Number(x.demandPurchase||0),0);
+  return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Vendidas: ${sold} · Demanda adicional: ${demand}</div></div>`;
+ }).join(""):'<div class="analysis-note">No hay ventas ni demanda registrada en este ciclo.</div>';
+ return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div><div class="analysis-note"><strong>Regla:</strong> Reponer = exactamente lo vendido, descontando únicamente lo que ya está pedido/en tránsito. La demanda se mantiene separada.</div>`;
+}
+
+function renderCycleHistory(){
+ const e=document.getElementById("cycleHistoryReport");if(!e)return;
+ const history=cycleHistory().slice().reverse();
+ e.innerHTML=history.length?history.map(h=>{
+  const groups=(h.groupedItems||[]).map(g=>{
+   const rows=(g.items||[]).map(x=>`<div class="report-line"><span><strong>${esc(x.size)}</strong><br><small>Vendidas: ${x.sold||0} · Reponer: ${x.replenish||0} · Demanda: ${x.demand||0} · Ya pedido: ${x.alreadyOrdered||0} · Falta pedir: ${x.recommended||0}</small></span><strong>${x.recommended||0}</strong></div>`).join("");
+   return `<div class="card" style="margin:8px 0;padding:12px 14px"><strong>${esc(g.name)}</strong>${rows}</div>`;
+  }).join("");
+  return `<details class="report-card collapsible" style="margin-top:10px"><summary><span>📋 CICLO ${h.cycle} — ${esc(h.trigger)}</span><span class="summary-right">${h.pieces} piezas</span></summary><div class="collapse-body"><div class="analysis-note">${fmtDate(h.start)} al ${fmtDate(h.end)}<br>Reponer: <strong>${h.totalReplenishment}</strong> · Demanda: <strong>${h.totalDemand}</strong> · Recomendado: <strong>${h.totalRecommended}</strong></div>${groups||'<div class="analysis-note">No hubo ventas ni demanda.</div>'}${h.pendingPieces>0?`<div class="analysis-note">📦 ${h.pendingPieces} piezas quedaron en pedidos pendientes al cerrar este ciclo.</div>`:''}</div></details>`;
+ }).join(""):'<div class="analysis-note">Todavía no hay ciclos cerrados.</div>';
+}
+
+function renderGrowthReport(){
+ const e=document.getElementById("smartReport");if(!e)return;
+ finalizeCurrentCycleIfDue();
+ const r=growthPurchaseAnalysis();
+function ensurePendingDebts(){
+ if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
+ // Migración de una deuda antigua única a movimientos individuales.
+ if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
+  state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+ }
+}
+function currentDebt(){
+ ensurePendingDebts();
+ return state.pendingDebts.reduce((a,d)=>a+Math.max(0,Number(d.remaining)||0),0);
+}
+function openDebtPanel(){
+ if(!assertDayOpen())return;
+ ensurePendingDebts();
+ const existing=document.getElementById("debtPanelWindow"); if(existing)existing.remove();
+ const panel=document.createElement("div"); panel.id="debtPanelWindow";
+ panel.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeDebtPanel()"><div style="max-width:620px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">PAGOS PENDIENTES</div><div style="font-size:11px;color:#bbb;margin-top:3px">Cada deuda se administra por separado</div></div><button onclick="closeDebtPanel()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div id="debtPanelBody" style="padding:16px"></div></div></div>`;
+ document.body.appendChild(panel); renderDebtPanel();
+}
+function closeDebtPanel(){const e=document.getElementById("debtPanelWindow");if(e)e.remove();}
+function renderDebtPanel(){
+ const e=document.getElementById("debtPanelBody"); if(!e)return;
+ ensurePendingDebts();
+ const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
+ const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
+ const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
+ e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
+}
+function openDebtPayment(id){
+ if(!assertDayOpen())return;
+ ensurePendingDebts();
+ const d=state.pendingDebts.find(x=>x.id===id);
+ if(!d || Number(d.remaining)<=0)return;
+ const pending=Number(d.remaining)||0;
+ const raw=prompt(`Pago pendiente: ${money(pending)}\n\n¿CUÁNTO VAS A ABONAR?`,String(pending));
+ if(raw===null)return;
+ const amount=Number(raw);
+ if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
+ if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
+ d.remaining=Math.max(0,pending-amount);
+ if(d.remaining===0)d.status="paid";
+ day().movements.push({id:makeK10Id(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
+ state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
+ state.debtPayments.push({id:makeK10Id(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
+}
+function openNewDebt(){
+ if(!assertDayOpen())return;
+ const raw=prompt("¿CUÁNTO ES EL NUEVO PAGO PENDIENTE?","0");
+ if(raw===null)return;
+ const amount=Number(raw);
+ if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
+ ensurePendingDebts();
+ const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
+ state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.initialDebt=Number(state.initialDebt)||0;
+ state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
+ save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
+}
+function renderDebt(){
+ const e=document.getElementById("debtCard"); if(!e)return;
+ ensurePendingDebts();
+ const pending=currentDebt();
+ e.innerHTML=`<div onclick="openDebtPanel()" style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">Toca para ver los pagos pendientes</div></div><span style="font-size:12px;font-weight:900;color:#111">›</span></div>`;
+}
+
+
+ renderCycleHistory();
+}
+
 function statisticsData(){
  const sales=allMovements().filter(m=>m.type==="sale"),team={},sizes={},dates={},weekdays={};
  sales.forEach(m=>{const q=Number(m.quantity||m.pieces||0);team[m.productName]=(team[m.productName]||0)+q;sizes[m.size]=(sizes[m.size]||0)+q;const dom="Día "+Number(m.date.slice(8,10));dates[dom]=(dates[dom]||0)+q;const wd=new Date(m.date+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"});weekdays[wd]=(weekdays[wd]||0)+q;});
@@ -3667,15 +3832,14 @@ function renderStatistics(){
  const history=cycleHistory();
  const lastClosed=closedNow?history[history.length-1]:null;
  const summary=lastClosed?cycleHistoryReportHTML(lastClosed):`<div class="analysis-note" style="margin-top:0"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>`;
- const inv=currentInventoryAnalysis();
- const initialStored=Number(state.initialInventoryPieces);
- const initialTotal=Number.isFinite(initialStored)?initialStored:(state.products||[]).reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
- const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+(Number(m.quantity||m.pieces)||0),0);
- const expected=Math.max(0,initialTotal-soldTotal);
  const list=(arr,n)=>arr.slice(0,n).map((x,i)=>`<div class="report-line"><span><strong>${i+1}. ${esc(x[0])}</strong></span><strong>${x[1]}</strong></div>`).join("")||'<div class="analysis-note">Sin datos registrados.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
- e.innerHTML=`
- <details class="report-card collapsible">
+ const inv=currentInventoryAnalysis();
+ const storedInitial=Number(state.initialInventoryPieces);
+ const initialInv=Number.isFinite(storedInitial)?storedInitial:(state.products||[]).reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||Number(p.stock?.[s])||0),0),0);
+ const soldFromInitial=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
+ const shouldHave=Math.max(0,initialInv-soldFromInitial);
+ e.innerHTML=`<details class="report-card collapsible">
    <summary><span>🔄 Ciclos en curso</span></summary>
    <div class="collapse-body">
      <div class="home-cycle-detail" style="padding:0">
@@ -3689,18 +3853,7 @@ function renderStatistics(){
      </div>
    </div>
  </details>
- <details class="report-card collapsible">
-   <summary><span>📦 Inventario actual</span></summary>
-   <div class="collapse-body">
-     <div class="analysis-grid">
-       <div class="analysis-metric"><span>Piezas iniciales</span><strong>${initialTotal}</strong></div>
-       <div class="analysis-metric"><span>Piezas vendidas</span><strong>${soldTotal}</strong></div>
-       <div class="analysis-metric"><span>Debería haber</span><strong>${expected}</strong></div>
-       <div class="analysis-metric"><span>Actualmente hay</span><strong>${Number(inv.pieces)||0}</strong></div>
-     </div>
-     <div class="analysis-note">Costo actual ${money(Number(inv.cost)||0)} · Venta potencial ${money(Number(inv.potential)||0)} · Utilidad potencial ${money((Number(inv.potential)||0)-(Number(inv.cost)||0))}</div>
-   </div>
- </details>
+ <details class="report-card collapsible"><summary><span>📦 Inventario</span></summary><div class="collapse-body"><div class="analysis-grid"><div class="analysis-metric"><span>Piezas iniciales</span><strong>${initialInv}</strong></div><div class="analysis-metric"><span>Piezas vendidas</span><strong>${soldFromInitial}</strong></div><div class="analysis-metric"><span>Debería haber</span><strong>${shouldHave}</strong></div><div class="analysis-metric"><span>Actualmente hay</span><strong>${inv.pieces}</strong></div></div><div class="analysis-note">Costo actual: ${money(inv.cost)} · Venta potencial: ${money(inv.potential)}</div></div></details>
  <details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details>
  <details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details>
  <details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details>
