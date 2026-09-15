@@ -1,6 +1,7 @@
 <html lang="es">
 
 <!DOCTYPE html>
+<!-- K10 CONTROL FINAL REAL: cambios verificados 2026-09-15 -->
 
 <head>
 
@@ -404,6 +405,7 @@ header{padding:20px 18px 10px}
 .cycle-alert{display:inline-flex;align-items:center;gap:5px;background:#fff3cd;color:#8a5a00;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900;white-space:nowrap;}
 .cycle-alert.today{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite;}
 .priority-dot{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;white-space:nowrap}.priority-dot.red{background:#ffe1e1;color:#b42318}.priority-dot.orange{background:#fff0df;color:#b45309}.priority-dot.yellow{background:#fff7cc;color:#8a5a00}.priority-dot.green{background:#e8f7ec;color:#187a3d}.cycle-alert.red{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite}.cycle-alert.orange{background:#fff0df;color:#b45309}.cycle-alert.yellow{background:#fff7cc;color:#8a5a00}.cycle-alert.green{background:#e8f7ec;color:#187a3d}
+.home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
 @keyframes k10Pulse{0%,100%{opacity:1}50%{opacity:.55}}
 </style>
 
@@ -539,7 +541,8 @@ header{padding:20px 18px 10px}
 
   </div>
 
-  <div id="debtCard" class="card" style="margin:12px 0 16px;padding:14px 16px"></div>
+  <div id="debtCard" class="card" style="margin:12px 0 12px;padding:14px 16px"></div>
+  <div id="homeCycleCard" class="card" style="margin:0 0 16px;padding:0;overflow:hidden"></div>
 
   <div class="actions">
 
@@ -2023,46 +2026,70 @@ function showScreen(id,btn){
 
 }
 
-function currentDebt(){
- const initial=Math.max(0,Number(state.initialDebt)||0);
- const paid=(state.debtPayments||[]).reduce((a,x)=>a+Math.max(0,Number(x.amount)||0),0);
- return Math.max(0,initial-paid);
+function ensurePendingDebts(){
+ if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
+ // Migración de una deuda antigua única a movimientos individuales.
+ if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
+  state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+ }
 }
-
-function openDebtPayment(){
+function currentDebt(){
+ ensurePendingDebts();
+ return state.pendingDebts.reduce((a,d)=>a+Math.max(0,Number(d.remaining)||0),0);
+}
+function openDebtPanel(){
  if(!assertDayOpen())return;
- const pending=currentDebt();
- if(pending<=0)return alert("No hay pago pendiente.");
- const raw=prompt(`Deuda pendiente: ${money(pending)}\n\n¿CUÁNTO VAS A ABONAR AL PAGO PENDIENTE?`,String(pending));
+ ensurePendingDebts();
+ const existing=document.getElementById("debtPanelWindow"); if(existing)existing.remove();
+ const panel=document.createElement("div"); panel.id="debtPanelWindow";
+ panel.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeDebtPanel()"><div style="max-width:620px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">PAGOS PENDIENTES</div><div style="font-size:11px;color:#bbb;margin-top:3px">Cada deuda se administra por separado</div></div><button onclick="closeDebtPanel()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div id="debtPanelBody" style="padding:16px"></div></div></div>`;
+ document.body.appendChild(panel); renderDebtPanel();
+}
+function closeDebtPanel(){const e=document.getElementById("debtPanelWindow");if(e)e.remove();}
+function renderDebtPanel(){
+ const e=document.getElementById("debtPanelBody"); if(!e)return;
+ ensurePendingDebts();
+ const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
+ const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
+ const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
+ e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
+}
+function openDebtPayment(id){
+ if(!assertDayOpen())return;
+ ensurePendingDebts();
+ const d=state.pendingDebts.find(x=>x.id===id);
+ if(!d || Number(d.remaining)<=0)return;
+ const pending=Number(d.remaining)||0;
+ const raw=prompt(`Pago pendiente: ${money(pending)}\n\n¿CUÁNTO VAS A ABONAR?`,String(pending));
  if(raw===null)return;
  const amount=Number(raw);
  if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
- if(amount>pending)return alert(`El abono no puede ser mayor que la deuda pendiente (${money(pending)}).`);
- day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:"Abono a pago pendiente",amount,timestamp:Date.now(),time:timeNow()});
+ if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
+ d.remaining=Math.max(0,pending-amount);
+ if(d.remaining===0)d.status="paid";
+ day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now()});
- save();
- render();
- alert(`Abono registrado: ${money(amount)}\nPago pendiente restante: ${money(currentDebt())}`);
+ state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
 }
-
 function openNewDebt(){
  if(!assertDayOpen())return;
  const raw=prompt("¿CUÁNTO ES EL NUEVO PAGO PENDIENTE?","0");
  if(raw===null)return;
  const amount=Number(raw);
  if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
- state.initialDebt=Math.max(0,Number(state.initialDebt)||0)+amount;
+ ensurePendingDebts();
+ const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
+ state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.initialDebt=Number(state.initialDebt)||0;
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount:0,timestamp:Date.now(),type:"new_pending",note:"Nuevo pago pendiente"});
- save(); render(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
+ save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
 }
-
 function renderDebt(){
- const e=document.getElementById("debtCard");
- if(!e)return;
+ const e=document.getElementById("debtCard"); if(!e)return;
+ ensurePendingDebts();
  const pending=currentDebt();
- e.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">${pending>0?'Pendiente de pago':'Sin pago pendiente'}</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end"><button class="btn dark" onclick="openDebtPayment()" ${pending<=0?'disabled':''}>ABONAR</button><button class="btn light" onclick="openNewDebt()">NUEVO PAGO PENDIENTE</button></div></div>`;
+ e.innerHTML=`<div onclick="openDebtPanel()" style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">Toca para ver los pagos pendientes</div></div><span style="font-size:12px;font-weight:900;color:#111">›</span></div>`;
 }
 
 /* =========================
@@ -2305,14 +2332,9 @@ function renderInventory(){
    <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
- const rawInitial=Number(state.initialInventoryPieces);
- const initialTotal=Number.isFinite(rawInitial)&&rawInitial>=0
-  ?rawInitial
-  :state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number.isFinite(Number(p.initialStock?.[s]))?Number(p.initialStock?.[s]):0),0),0);
- const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>{
-  const q=Number(m.quantity??m.pieces??0);
-  return a+(Number.isFinite(q)&&q>=0?q:0);
- },0);
+ const savedInitial=Number(state.initialInventoryPieces);
+ const initialTotal=Number.isFinite(savedInitial)?savedInitial:state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
+ const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
  const currentTotal=totalPieces();
  const expected=Math.max(0,initialTotal-soldTotal);
  if(summary)summary.innerHTML=`<div style="font-weight:900;margin-bottom:10px">RESUMEN DEL INVENTARIO</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS EN TOTAL INICIALES</div><strong style="font-size:20px">${initialTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS VENDIDAS</div><strong style="font-size:20px">${soldTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">DEBERÍA HABER</div><strong style="font-size:20px">${expected}</strong><div style="font-size:11px;color:#777">Actualmente hay ${currentTotal}</div></div></div>`;
@@ -3003,6 +3025,11 @@ function createOrder(){
  };
 
  state.orders.push(order);
+ if(total===0){
+  const p0=state.products.find(x=>x.id===productId);
+  if(p0){ SIZES.forEach(size=>{p0.stock[size]=(Number(p0.stock[size])||0)+(Number(q[size])||0);}); }
+  order.received=true; order.status="received"; order.receivedDate=today();
+ }
  ensureGrowthData();
  state.growthCycle.lastOrderDate=today();
  /*
@@ -3519,6 +3546,9 @@ function ensureGrowthData(){
  if(!Array.isArray(state.growthCycle.history)){state.growthCycle.history=[];changed=true;}
  if(!Array.isArray(state.debtPayments)){state.debtPayments=[];changed=true;}
  if(state.initialDebt==null){state.initialDebt=0;changed=true;}
+ const beforeDebts=Array.isArray(state.pendingDebts)?state.pendingDebts.length:0;
+ ensurePendingDebts();
+ if((state.pendingDebts||[]).length!==beforeDebts)changed=true;
  if(changed)save();
 }
 
@@ -3755,11 +3785,73 @@ function renderGrowthReport(){
  const e=document.getElementById("smartReport");if(!e)return;
  finalizeCurrentCycleIfDue();
  const r=growthPurchaseAnalysis();
- const growth=r.growthCapital>0?`Hay capacidad estimada para crecimiento después de cubrir reposiciones y obligaciones. Capital disponible para crecimiento: ${money(r.growthCapital)}.`:'Por ahora no se recomienda forzar crecimiento adicional; primero se cubren reposiciones y obligaciones.';
- const chartMax=Math.max(1,r.totalReplenishment,r.totalDemand,r.pendingPieces);
- const bar=(label,value,cls)=>`<div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800"><span>${label}</span><strong>${value}</strong></div><div style="height:10px;background:#e9e9e9;border-radius:99px;overflow:hidden;margin-top:4px"><div style="height:100%;width:${Math.round((value/chartMax)*100)}%;background:${cls};border-radius:99px"></div></div></div>`;
- const purchaseState=r.totalRecommended>0?'🟠 HAY COMPRA PENDIENTE':'🟢 NO HAY COMPRA PENDIENTE';
- e.innerHTML=`<div class="analysis-note"><strong>RESUMEN DE COMPRA</strong><br>${purchaseState}<br><span style="font-size:12px">Aquí no se repiten equipos ni tallas; solo se muestra el resumen para saber cuánto comprar.</span></div><div class="card" style="margin-top:10px;padding:12px"><div style="font-weight:900;margin-bottom:8px">RESUMEN VISUAL</div>${bar('Reposición por ventas',r.totalReplenishment,'#f59e0b')}${bar('Demanda adicional',r.totalDemand,'#3b82f6')}${bar('Ya pedido / en tránsito',r.pendingPieces,'#22c55e')}</div><div class="analysis-note"><strong>CRECIMIENTO:</strong> ${growth}</div><div class="analysis-note" style="margin-top:8px"><strong>¿DÓNDE VERÉ LO QUE DEBO COMPRAR?</strong><br>Cuando el ciclo llegue a 50 piezas vendidas o 14 días, K10 CONTROL cerrará ese ciclo y guardará el reporte completo en <strong>Reportes → Historial de ciclos cerrados</strong>. Ahí aparecerá exactamente lo vendido, lo que se debe reponer, la demanda, lo ya pedido/en tránsito y lo que todavía falta pedir.</div>`;
+function ensurePendingDebts(){
+ if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
+ // Migración de una deuda antigua única a movimientos individuales.
+ if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
+  state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+ }
+}
+function currentDebt(){
+ ensurePendingDebts();
+ return state.pendingDebts.reduce((a,d)=>a+Math.max(0,Number(d.remaining)||0),0);
+}
+function openDebtPanel(){
+ if(!assertDayOpen())return;
+ ensurePendingDebts();
+ const existing=document.getElementById("debtPanelWindow"); if(existing)existing.remove();
+ const panel=document.createElement("div"); panel.id="debtPanelWindow";
+ panel.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeDebtPanel()"><div style="max-width:620px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">PAGOS PENDIENTES</div><div style="font-size:11px;color:#bbb;margin-top:3px">Cada deuda se administra por separado</div></div><button onclick="closeDebtPanel()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div id="debtPanelBody" style="padding:16px"></div></div></div>`;
+ document.body.appendChild(panel); renderDebtPanel();
+}
+function closeDebtPanel(){const e=document.getElementById("debtPanelWindow");if(e)e.remove();}
+function renderDebtPanel(){
+ const e=document.getElementById("debtPanelBody"); if(!e)return;
+ ensurePendingDebts();
+ const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
+ const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
+ const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
+ e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
+}
+function openDebtPayment(id){
+ if(!assertDayOpen())return;
+ ensurePendingDebts();
+ const d=state.pendingDebts.find(x=>x.id===id);
+ if(!d || Number(d.remaining)<=0)return;
+ const pending=Number(d.remaining)||0;
+ const raw=prompt(`Pago pendiente: ${money(pending)}\n\n¿CUÁNTO VAS A ABONAR?`,String(pending));
+ if(raw===null)return;
+ const amount=Number(raw);
+ if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
+ if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
+ d.remaining=Math.max(0,pending-amount);
+ if(d.remaining===0)d.status="paid";
+ day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
+ state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
+ state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
+}
+function openNewDebt(){
+ if(!assertDayOpen())return;
+ const raw=prompt("¿CUÁNTO ES EL NUEVO PAGO PENDIENTE?","0");
+ if(raw===null)return;
+ const amount=Number(raw);
+ if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
+ ensurePendingDebts();
+ const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
+ state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.initialDebt=Number(state.initialDebt)||0;
+ state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
+ save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
+}
+function renderDebt(){
+ const e=document.getElementById("debtCard"); if(!e)return;
+ ensurePendingDebts();
+ const pending=currentDebt();
+ e.innerHTML=`<div onclick="openDebtPanel()" style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">Toca para ver los pagos pendientes</div></div><span style="font-size:12px;font-weight:900;color:#111">›</span></div>`;
+}
+
+
  renderCycleHistory();
 }
 
@@ -4016,6 +4108,24 @@ function renderBusinessAnalysis(){const box=document.getElementById("businessAna
 
 ========================= */
 
+function cyclePhase(elapsed){
+ const pct=Math.min(100,Math.max(0,(elapsed/14)*100));
+ if(pct<25)return{pct,cls:"red",label:"INICIO DEL CICLO"};
+ if(pct<50)return{pct,cls:"yellow",label:"CICLO EN AVANCE"};
+ if(pct<75)return{pct,cls:"orange",label:"CICLO AVANZADO"};
+ return{pct,cls:"green",label:"ETAPA FINAL"};
+}
+function renderHomeCycle(){
+ const e=document.getElementById("homeCycleCard"); if(!e)return;
+ ensureGrowthData();
+ finalizeCurrentCycleIfDue();
+ const c=cycleSales();
+ const elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1));
+ const ph=cyclePhase(elapsed);
+ const sales=Math.min(50,c.pieces);
+ e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title">🔄 CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div></div></details>`;
+}
+
 function refreshHomeSales(){
  const d=day();
  const sales=(d.movements||[]).filter(m=>m.type==="sale");
@@ -4040,6 +4150,7 @@ function render(){
 
  renderBusinessAnalysis();
  renderDebt();
+ renderHomeCycle();
 
  document.getElementById("todayLabel").textContent=
 
