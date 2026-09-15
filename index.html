@@ -1,6 +1,7 @@
 <html lang="es">
 
 <!DOCTYPE html>
+<!-- K10 CONTROL FINAL REAL: cambios verificados 2026-09-15 -->
 
 <head>
 
@@ -55,7 +56,7 @@ header{padding:20px 18px 10px}
 
 .balance-sub{margin-top:7px;font-size:13px;opacity:.6}
 
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions .action:nth-child(3){grid-column:1 / -1;width:50%;justify-self:center}
 
 .action{
 
@@ -404,7 +405,7 @@ header{padding:20px 18px 10px}
 .cycle-alert{display:inline-flex;align-items:center;gap:5px;background:#fff3cd;color:#8a5a00;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900;white-space:nowrap;}
 .cycle-alert.today{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite;}
 .priority-dot{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;white-space:nowrap}.priority-dot.red{background:#ffe1e1;color:#b42318}.priority-dot.orange{background:#fff0df;color:#b45309}.priority-dot.yellow{background:#fff7cc;color:#8a5a00}.priority-dot.green{background:#e8f7ec;color:#187a3d}.cycle-alert.red{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite}.cycle-alert.orange{background:#fff0df;color:#b45309}.cycle-alert.yellow{background:#fff7cc;color:#8a5a00}.cycle-alert.green{background:#e8f7ec;color:#187a3d}
-.home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
+.home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-indicator{display:inline-flex;width:12px;height:12px;border-radius:50%;vertical-align:-1px}.cycle-indicator.cycle-phase-red{background:#d92d20}.cycle-indicator.cycle-phase-yellow{background:#eab308}.cycle-indicator.cycle-phase-orange{background:#f97316}.cycle-indicator.cycle-phase-green{background:#16a34a}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
 @keyframes k10Pulse{0%,100%{opacity:1}50%{opacity:.55}}
 </style>
 
@@ -541,6 +542,7 @@ header{padding:20px 18px 10px}
   </div>
 
   <div id="debtCard" class="card" style="margin:12px 0 12px;padding:14px 16px"></div>
+  <div id="homeCycleCard" class="card" style="margin:0 0 16px;padding:0;overflow:hidden"></div>
 
   <div class="actions">
 
@@ -567,7 +569,6 @@ header{padding:20px 18px 10px}
       <small>Dinero personal</small>
 
     </button>
-
 
   </div>
 
@@ -1178,157 +1179,55 @@ header{padding:20px 18px 10px}
 <!-- PEDIDO -->
 
 <div id="orderModal" class="modal">
-
 <div class="sheet">
-
   <h2>Crear pedido</h2>
-
-  <p>
-
-    El pedido se paga al crearlo y el dinero se descuenta de caja.
-
-    Las piezas entrarán al inventario únicamente cuando marques
-
-    el pedido como recibido.
-
-  </p>
+  <p>Agrega todos los equipos y tallas que quieras dentro del mismo pedido. Cada renglón puede tener su propio costo y precio.</p>
 
   <div class="choice">
-
-    <button id="existingChoice"
-
-            class="selected"
-
-            onclick="chooseOrderType('existing')">
-
-      📦 Equipo existente
-
-    </button>
-
-    <button id="newChoice"
-
-            onclick="chooseOrderType('new')">
-
-      ＋ Equipo nuevo
-
-    </button>
-
+    <button id="existingChoice" class="selected" onclick="chooseOrderType('existing')">📦 Equipo existente</button>
+    <button id="newChoice" onclick="chooseOrderType('new')">＋ Equipo nuevo</button>
   </div>
 
   <div id="existingTeamBox">
-
-    <div class="field">
-
-      <label>EQUIPO EXISTENTE</label>
-
-      <select id="orderExistingProduct"></select>
-
-    </div>
-
+    <div class="field"><label>EQUIPO EXISTENTE</label><select id="orderExistingProduct"></select></div>
   </div>
-
   <div id="newTeamBox" style="display:none">
-
-    <div class="field">
-
-      <label>NOMBRE DEL NUEVO EQUIPO</label>
-
-      <input id="orderNewName"
-
-             placeholder="Ej. Inter Miami visitante">
-
-    </div>
-
+    <div class="field"><label>NOMBRE DEL NUEVO EQUIPO</label><input id="orderNewName" placeholder="Ej. Inter Miami visitante"></div>
   </div>
 
-  <div class="field">
-
-    <label>COSTO REAL DE COMPRA POR PIEZA</label>
-
-    <input id="orderCost"
-
-           type="number"
-
-           min="0"
-
-           step=".01"
-
-           placeholder="150">
-
-  </div>
-
-  <div class="field">
-
-    <label>PRECIO AL QUE SE VENDERÁ</label>
-
-    <input id="orderSalePrice"
-
-           type="number"
-
-           min="0"
-
-           step=".01"
-
-           placeholder="220">
-
+  <div class="row">
+    <div class="field"><label>COSTO POR PIEZA</label><input id="orderCost" type="number" min="0" step=".01" placeholder="150"></div>
+    <div class="field"><label>PRECIO DE VENTA</label><input id="orderSalePrice" type="number" min="0" step=".01" placeholder="220"></div>
   </div>
 
   <div class="section-title">Tallas y cantidades</div>
-
   <div class="order-size-grid">
-
     <div class="size-input"><label>S</label><input id="oS" type="number" min="0" value="0"></div>
-
     <div class="size-input"><label>M</label><input id="oM" type="number" min="0" value="0"></div>
-
     <div class="size-input"><label>L</label><input id="oL" type="number" min="0" value="0"></div>
-
     <div class="size-input"><label>XL</label><input id="oXL" type="number" min="0" value="0"></div>
-
     <div class="size-input"><label>2XL</label><input id="o2XL" type="number" min="0" value="0"></div>
-
     <div class="size-input"><label>3XL</label><input id="o3XL" type="number" min="0" value="0"></div>
-
     <div class="size-input"><label>4XL</label><input id="o4XL" type="number" min="0" value="0"></div>
+  </div>
 
+  <button class="btn light" style="width:100%;margin-top:10px" onclick="addOrderItemToDraft()">＋ AGREGAR AL PEDIDO</button>
+
+  <div class="info-box" style="margin-top:12px">
+    <strong>Productos agregados al pedido</strong>
+    <div id="orderDraftList" style="margin-top:8px"></div>
   </div>
 
   <div class="info-box">
-
-    Total de piezas:
-
-    <strong id="orderPiecesPreview">0</strong>
-
-    <br>
-
-    Inversión:
-
-    <strong id="orderTotalPreview">$0</strong>
-
+    Total de piezas: <strong id="orderPiecesPreview">0</strong><br>
+    Total del pedido: <strong id="orderTotalPreview">$0</strong>
   </div>
 
   <div class="modal-buttons">
-
-    <button class="btn light"
-
-            onclick="closeModal('orderModal')">
-
-      CANCELAR
-
-    </button>
-
-    <button class="btn dark"
-
-            onclick="createOrder()">
-
-      CREAR Y PAGAR PEDIDO
-
-    </button>
-
+    <button class="btn light" onclick="closeModal('orderModal')">CANCELAR</button>
+    <button class="btn dark" onclick="createOrder()">CREAR PEDIDO</button>
   </div>
-
 </div>
-
 </div>
 
 <!-- EDITAR PRECIOS DEL EQUIPO -->
@@ -1536,11 +1435,6 @@ function esc(x){
 
  .replaceAll("'","&#039;");
 
-}
-
-function makeK10Id(){
-  try{ if(window.crypto && typeof window.crypto.randomUUID === "function") return window.makeK10Id(); }catch(e){}
-  return "k10_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2)+"_"+Math.random().toString(36).slice(2);
 }
 
 function openModal(id){
@@ -1754,7 +1648,7 @@ function saveProduct(){
 
  const p={
 
-  id:makeK10Id(),
+  id:crypto.randomUUID(),
 
   name,
 
@@ -2026,7 +1920,7 @@ function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
  if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
-  state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+  state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
  }
 }
 function currentDebt(){
@@ -2063,9 +1957,9 @@ function openDebtPayment(id){
  if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
  d.remaining=Math.max(0,pending-amount);
  if(d.remaining===0)d.status="paid";
- day().movements.push({id:makeK10Id(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
+ day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:makeK10Id(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
  save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
 }
 function openNewDebt(){
@@ -2076,7 +1970,7 @@ function openNewDebt(){
  if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
  ensurePendingDebts();
  const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
- state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
  state.initialDebt=Number(state.initialDebt)||0;
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
  save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
@@ -2162,7 +2056,7 @@ function saveMovement(){
 
  day().movements.push({
 
-  id:makeK10Id(),
+  id:crypto.randomUUID(),
 
   type:movementType,
 
@@ -2257,7 +2151,7 @@ function saveSale(){
 
  day().movements.push({
 
-  id:makeK10Id(),
+  id:crypto.randomUUID(),
 
   type:"sale",
 
@@ -2328,7 +2222,8 @@ function renderInventory(){
    <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
- const storedInitial=Number(state.initialInventoryPieces); const initialTotal=Number.isFinite(storedInitial)?storedInitial:state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||Number(p.stock?.[s])||0),0),0);
+ const savedInitial=Number(state.initialInventoryPieces);
+ const initialTotal=Number.isFinite(savedInitial)?savedInitial:state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
  const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
  const currentTotal=totalPieces();
  const expected=Math.max(0,initialTotal-soldTotal);
@@ -2376,7 +2271,7 @@ function quickSale(id,s){
 
  day().movements.push({
 
-  id:makeK10Id(),
+  id:crypto.randomUUID(),
 
   type:"sale",
 
@@ -2566,7 +2461,7 @@ function saveAdjustment(){
 
    day().movements.push({
 
-    id:makeK10Id(),
+    id:crypto.randomUUID(),
 
     type:"inventory_adjustment",
 
@@ -2692,10 +2587,10 @@ function createApartado(){
   if((q[size]||0)>(p.stock[size]||0))return alert(`No hay suficientes piezas talla ${size}. Disponible: ${p.stock[size]||0}.`);
  }
  SIZES.forEach(size=>{p.stock[size]=(p.stock[size]||0)-(q[size]||0);});
- const a={id:makeK10Id(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
+ const a={id:crypto.randomUUID(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
  state.apartados.push(a);
  if(deposit>0){
-  day().movements.push({id:makeK10Id(),type:"income",concept:`Anticipo apartado #${String(a.number).padStart(3,"0")} — ${p.name}`,amount:deposit,apartadoId:a.id,timestamp:Date.now(),time:timeNow()});
+  day().movements.push({id:crypto.randomUUID(),type:"income",concept:`Anticipo apartado #${String(a.number).padStart(3,"0")} — ${p.name}`,amount:deposit,apartadoId:a.id,timestamp:Date.now(),time:timeNow()});
  }
  save(); closeModal("apartadoModal"); render();
  alert(`Apartado #${String(a.number).padStart(3,"0")} creado.\n\n${pieces} piezas bajaron del inventario.`);
@@ -2708,7 +2603,7 @@ function finishApartado(id){
  const remaining=Math.max(0,Number(a.total)-Number(a.deposit));
  if(!confirm(`¿Marcar apartado #${String(a.number).padStart(3,"0")} como PAGADO?\n\nResta por cobrar: ${money(remaining)}`))return;
  if(remaining>0){
-  day().movements.push({id:makeK10Id(),type:"sale",concept:`Pago final apartado #${String(a.number).padStart(3,"0")} — ${a.productName}`,amount:remaining,apartadoId:a.id,productId:a.productId,productName:a.productName,quantity:a.pieces,pieces:a.pieces,unitCost:(state.products.find(p=>p.id===a.productId)?.cost||0),timestamp:Date.now(),time:timeNow()});
+  day().movements.push({id:crypto.randomUUID(),type:"sale",concept:`Pago final apartado #${String(a.number).padStart(3,"0")} — ${a.productName}`,amount:remaining,apartadoId:a.id,productId:a.productId,productName:a.productName,quantity:a.pieces,pieces:a.pieces,unitCost:(state.products.find(p=>p.id===a.productId)?.cost||0),timestamp:Date.now(),time:timeNow()});
  }
  a.status="paid"; a.paidDate=today(); a.remaining=0;
  save(); render();
@@ -2775,525 +2670,121 @@ function chooseOrderType(type){
 
 }
 
-function openOrderModal(){
-
+let orderDraftItems=[];
+function resetOrderLine(){
  orderType="existing";
-
  chooseOrderType("existing");
-
- orderExistingProduct.innerHTML=
-
- state.products.length
-
- ?state.products.map(p=>
-
-   `<option value="${p.id}">
-
-    ${esc(p.name)}
-
-   </option>`
-
-  ).join("")
-
- :`<option value="">No hay equipos creados</option>`;
-
- orderNewName.value="";
-
- orderCost.value="";
-
- orderSalePrice.value="";
-
- SIZES.forEach(s=>{
-
-  document.getElementById("o"+s).value=0;
-
- });
-
+ const sel=document.getElementById("orderExistingProduct");
+ sel.innerHTML=state.products.length?state.products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join(""):`<option value="">No hay equipos creados</option>`;
+ document.getElementById("orderNewName").value="";
+ document.getElementById("orderCost").value="";
+ document.getElementById("orderSalePrice").value="";
+ SIZES.forEach(size=>{document.getElementById("o"+size).value=0;});
  updateOrderPreview();
-
+}
+function openOrderModal(){
+ orderDraftItems=[];
+ resetOrderLine();
+ renderOrderDraft();
  openModal("orderModal");
-
 }
-
-document.addEventListener("input",e=>{
-
- if(e.target.id &&
-
-    (e.target.id.startsWith("o") ||
-
-     e.target.id==="orderCost" ||
-
-     e.target.id==="orderSalePrice")){
-
-  updateOrderPreview();
-
- }
-
-});
-
 function orderQuantities(){
-
  const q={};
-
- SIZES.forEach(s=>{
-
-  q[s]=Number(
-
-   document.getElementById("o"+s).value
-
-  )||0;
-
- });
-
+ SIZES.forEach(s=>q[s]=Number(document.getElementById("o"+s).value)||0);
  return q;
-
 }
-
-function updateOrderPreview(){
-
+function currentOrderLine(){
  const q=orderQuantities();
-
- const pieces=
-
-  Object.values(q).reduce((a,b)=>a+b,0);
-
- const cost=Number(orderCost.value)||0;
-
- orderPiecesPreview.textContent=pieces;
-
- orderTotalPreview.textContent=
-
-  money(pieces*cost);
-
-}
-
-function createOrder(){
-
- const q=orderQuantities();
-
- const pieces=
-
-  Object.values(q).reduce((a,b)=>a+b,0);
-
- const cost=Number(orderCost.value);
-
- const salePrice=Number(orderSalePrice.value);
-
- if(pieces<=0){
-
-  return alert("Agrega al menos una pieza.");
-
- }
-
- if(cost<0||isNaN(cost)||salePrice<=0){
-
-  return alert("Completa costo y precio de venta.");
-
- }
-
- if(
-
-  orderType==="existing" &&
-
-  !orderExistingProduct.value
-
- ){
-
-  return alert("Selecciona un equipo.");
-
- }
-
- if(
-
-  orderType==="new" &&
-
-  !orderNewName.value.trim()
-
- ){
-
-  return alert("Escribe el nombre del nuevo equipo.");
-
- }
-
- const total=pieces*cost;
-
- if(cash()<total){
-
-  return alert(
-
-   `No tienes suficiente dinero en caja.\n\n`+
-
-   `Disponible: ${money(cash())}\n`+
-
-   `Necesario: ${money(total)}`
-
-  );
-
- }
-
- let productId=null;
-
- let productName="";
-
+ const pieces=Object.values(q).reduce((a,b)=>a+b,0);
+ const cost=Number(document.getElementById("orderCost").value);
+ const salePrice=Number(document.getElementById("orderSalePrice").value);
+ let productId=null, productName="";
  if(orderType==="existing"){
-
-  const p=state.products.find(
-
-   x=>x.id===orderExistingProduct.value
-
-  );
-
-  productId=p.id;
-
-  productName=p.name;
-
- }else{
-
-  productName=orderNewName.value.trim();
-
+  productId=document.getElementById("orderExistingProduct").value||null;
+  const p=state.products.find(x=>x.id===productId);
+  productName=p?p.name:"";
+ }else productName=document.getElementById("orderNewName").value.trim();
+ return {productId,productName,quantities:q,pieces,cost,salePrice,total:pieces*(Number.isFinite(cost)?cost:0)};
+}
+function updateOrderPreview(){
+ const line=currentOrderLine();
+ const draftPieces=orderDraftItems.reduce((a,x)=>a+Number(x.pieces||0),0);
+ const draftTotal=orderDraftItems.reduce((a,x)=>a+Number(x.total||0),0);
+ const piecesEl=document.getElementById("orderPiecesPreview");
+ const totalEl=document.getElementById("orderTotalPreview");
+ if(piecesEl)piecesEl.textContent=draftPieces+line.pieces;
+ if(totalEl)totalEl.textContent=money(draftTotal+line.total);
+}
+function addOrderItemToDraft(){
+ const line=currentOrderLine();
+ if(line.pieces<=0)return alert("Agrega al menos una pieza.");
+ if(line.cost<0||!Number.isFinite(line.cost)||line.salePrice<=0||!Number.isFinite(line.salePrice))return alert("Completa costo y precio de venta.");
+ if(!line.productName)return alert(orderType==="new"?"Escribe el nombre del nuevo equipo.":"Selecciona un equipo.");
+ orderDraftItems.push(line);
+ renderOrderDraft();
+ resetOrderLine();
+}
+function removeOrderDraftItem(index){orderDraftItems.splice(index,1);renderOrderDraft();}
+function renderOrderDraft(){
+ const e=document.getElementById("orderDraftList"); if(!e)return;
+ if(!orderDraftItems.length){e.innerHTML='<div class="analysis-note">Todavía no has agregado equipos.</div>';updateOrderPreview();return;}
+ e.innerHTML=orderDraftItems.map((x,i)=>{
+  const sizes=SIZES.filter(s=>Number(x.quantities?.[s]||0)>0).map(s=>`${s}: ${x.quantities[s]}`).join(" · ");
+  return `<div class="report-line" style="align-items:flex-start"><span><strong>${esc(x.productName)}</strong><br><small>${sizes} · ${x.pieces} pz · ${money(x.cost)} c/u · Venta ${money(x.salePrice)} c/u</small></span><span style="display:flex;align-items:center;gap:8px"><strong>${money(x.total)}</strong><button class="btn light" style="padding:6px 8px" onclick="removeOrderDraftItem(${i})">✕</button></span></div>`;
+ }).join("");
+ updateOrderPreview();
+}
+document.addEventListener("input",e=>{
+ if(e.target.id && (e.target.id.startsWith("o")||e.target.id==="orderCost"||e.target.id==="orderSalePrice"))updateOrderPreview();
+});
+function createOrder(){
+ const current=currentOrderLine();
+ if(current.pieces>0) {
+  if(current.cost<0||!Number.isFinite(current.cost)||current.salePrice<=0||!Number.isFinite(current.salePrice))return alert("Completa costo y precio de venta del último equipo.");
+  if(!current.productName)return alert(orderType==="new"?"Escribe el nombre del nuevo equipo.":"Selecciona un equipo.");
+  orderDraftItems.push(current);
  }
-
- /*
-
-  Si es un equipo nuevo:
-
-  se crea desde ahora con stock en 0.
-
-  Las piezas entran solamente al marcar RECIBIDO.
-
- */
-
- if(orderType==="new"){
-
-  const newProduct={
-
-   id:makeK10Id(),
-
-   name:productName,
-
-   price:salePrice,
-
-   cost:cost,
-
-   stock:{
-
-    S:0,M:0,L:0,XL:0,
-
-    "2XL":0,"3XL":0,"4XL":0
-
-   }
-
-  };
-
-  state.products.push(newProduct);
-
-  productId=newProduct.id;
-
- }
-
- const order={
-
-  id:makeK10Id(),
-
-  number:state.orders.length+1,
-
-  date:today(),
-
-  status:"pending",
-
-  productId,
-
-  productName,
-
-  cost,
-
-  salePrice,
-
-  quantities:q,
-
-  pieces,
-
-  total,
-
-  received:false
-
- };
-
+ if(!orderDraftItems.length)return alert("Agrega al menos un equipo al pedido.");
+ const totalPieces=orderDraftItems.reduce((a,x)=>a+x.pieces,0);
+ const total=orderDraftItems.reduce((a,x)=>a+x.total,0);
+ if(cash()<total)return alert(`No tienes suficiente dinero en caja.\n\nDisponible: ${money(cash())}\nNecesario: ${money(total)}`);
+ const items=orderDraftItems.map(x=>({...x,quantities:{...x.quantities}}));
+ items.forEach(item=>{
+  if(!item.productId){
+   const newProduct={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,stock:{S:0,M:0,L:0,XL:0,"2XL":0,"3XL":0,"4XL":0}};
+   state.products.push(newProduct); item.productId=newProduct.id;
+  }
+ });
+ const order={id:crypto.randomUUID(),number:state.orders.length+1,date:today(),status:"pending",productId:items.length===1?items[0].productId:null,productName:items.length===1?items[0].productName:`${items.length} equipos`,cost:items.length===1?items[0].cost:0,salePrice:items.length===1?items[0].salePrice:0,quantities:items.length===1?items[0].quantities:{},pieces:totalPieces,total,items,received:false};
  state.orders.push(order);
  if(total===0){
-  const p0=state.products.find(x=>x.id===productId);
-  if(p0){ SIZES.forEach(size=>{p0.stock[size]=(Number(p0.stock[size])||0)+(Number(q[size])||0);}); }
-  order.received=true; order.status="received"; order.receivedDate=today();
+  items.forEach(item=>{const p=state.products.find(x=>x.id===item.productId);if(!p)return;SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities[size])||0));});
+  order.received=true;order.status="received";order.receivedDate=today();
  }
- ensureGrowthData();
- state.growthCycle.lastOrderDate=today();
- /*
-  EL PEDIDO YA ESTÁ PAGADO.
-
-  Se descuenta una sola vez.
-
- */
-
- day().movements.push({
-
-  id:makeK10Id(),
-
-  type:"order",
-
-  concept:
-
-   `Compra mercancía — Pedido #${
-
-    String(order.number).padStart(3,"0")
-
-   } — ${productName}`,
-
-  amount:total,
-
-  orderId:order.id,
-
-  timestamp:Date.now(),
-
-  time:timeNow()
-
- });
-
- save();
-
- closeModal("orderModal");
-
- render();
-
- alert(
-
-  `Pedido creado correctamente.\n\n`+
-
-  `Se descontaron ${money(total)} de caja.\n\n`+
-
-  `Queda pendiente de recibir.`
-
- );
-
+ ensureGrowthData();state.growthCycle.lastOrderDate=today();
+ day().movements.push({id:crypto.randomUUID(),type:"order",concept:`Compra mercancía — Pedido #${String(order.number).padStart(3,"0")}`,amount:total,orderId:order.id,timestamp:Date.now(),time:timeNow()});
+ save();closeModal("orderModal");orderDraftItems=[];render();
+ alert(`Pedido creado correctamente.\n\nTotal del pedido: ${money(total)}\nPiezas: ${totalPieces}\n\n${total===0?"Las piezas ya entraron al inventario.":"Queda pendiente de recibir."}`);
 }
-
 function receiveOrder(id){
-
- const o=state.orders.find(x=>x.id===id);
-
- if(!o||o.received)return;
-
- let p=state.products.find(
-
-  x=>x.id===o.productId
-
- );
-
- /*
-
-  Si por cualquier motivo no existe,
-
-  se crea automáticamente.
-
- */
-
- if(!p){
-
-  p={
-
-   id:makeK10Id(),
-
-   name:o.productName,
-
-   price:o.salePrice,
-
-   cost:o.cost,
-
-   stock:{
-
-    S:0,M:0,L:0,XL:0,
-
-    "2XL":0,"3XL":0,"4XL":0
-
-   }
-
-  };
-
-  state.products.push(p);
-
-  o.productId=p.id;
-
- }else{
-
-  /*
-
-   El pedido conserva su costo y precio reales.
-
-   Al recibirlo, actualizamos el precio actual
-
-   del equipo para las nuevas piezas.
-
-  */
-
-  p.price=o.salePrice;
-
-  p.cost=o.cost;
-
- }
-
- /*
-
-  AQUÍ es donde las piezas entran al inventario.
-
-  NO se toca caja.
-
- */
-
- SIZES.forEach(s=>{
-
-  p.stock[s]=
-
-   (p.stock[s]||0)+
-
-   (o.quantities[s]||0);
-
+ const o=state.orders.find(x=>x.id===id);if(!o||o.received)return;
+ const items=Array.isArray(o.items)&&o.items.length?o.items:[{productId:o.productId,productName:o.productName,cost:o.cost,salePrice:o.salePrice,quantities:o.quantities||{},pieces:o.pieces||0}];
+ items.forEach(item=>{
+  let p=state.products.find(x=>x.id===item.productId);
+  if(!p){p={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,stock:{S:0,M:0,L:0,XL:0,"2XL":0,"3XL":0,"4XL":0}};state.products.push(p);item.productId=p.id;}
+  p.price=Number(item.salePrice)||p.price;p.cost=Number(item.cost)||p.cost;
+  SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities?.[size])||0));
  });
-
- o.received=true;
-
- o.status="received";
-
- o.receivedDate=today();
-
- save();
-
- render();
-
- alert(
-
-  `Pedido recibido.\n\n`+
-
-  `${o.pieces} piezas agregadas al inventario.`
-
- );
-
+ o.received=true;o.status="received";o.receivedDate=today();save();render();alert(`Pedido recibido.\n\n${o.pieces} piezas agregadas al inventario.`);
 }
-
 function renderOrders(){
-
  const e=document.getElementById("ordersList");
-
- if(!state.orders.length){
-
-  e.innerHTML=
-
-   '<div class="card empty">Todavía no tienes pedidos.</div>';
-
-  return;
-
- }
-
- e.innerHTML=state.orders
-
- .slice()
-
- .reverse()
-
- .map(o=>`
-
-  <div class="order-card">
-
-   <div class="order-head">
-
-    <div>
-
-     <div class="order-name">
-
-      Pedido #${String(o.number).padStart(3,"0")}
-
-     </div>
-
-     <div class="order-meta">
-
-      ${esc(o.productName)} · ${fmtDate(o.date)}
-
-     </div>
-
-    </div>
-
-    <span class="status ${o.received?"received":""}">
-
-     ${o.received
-
-       ?"RECIBIDO"
-
-       :"PENDIENTE DE RECIBIR"}
-
-    </span>
-
-   </div>
-
-   <div class="order-lines">
-
-    ${SIZES
-
-      .filter(s=>o.quantities[s])
-
-      .map(s=>`${s}: ${o.quantities[s]} piezas`)
-
-      .join(" · ")}
-
-   </div>
-
-   <div class="order-meta">
-
-    Costo: ${money(o.cost)} c/u ·
-
-    Venta: ${money(o.salePrice)} c/u
-
-   </div>
-
-   <div class="order-total">
-
-    ${money(o.total)}
-
-   </div>
-
-   ${
-
-    !o.received
-
-    ?`
-
-     <button
-
-      class="btn green"
-
-      style="width:100%;margin-top:13px"
-
-      onclick="receiveOrder('${o.id}')">
-
-      RECIBIDO
-
-     </button>
-
-    `
-
-    :`
-
-     <div class="info-box success-text">
-
-      ✓ ${o.pieces} piezas agregadas al inventario.
-
-     </div>
-
-    `
-
-   }
-
-  </div>
-
- `).join("");
-
+ if(!state.orders.length){e.innerHTML='<div class="card empty">Todavía no tienes pedidos.</div>';return;}
+ e.innerHTML=state.orders.slice().reverse().map(o=>{
+  const items=Array.isArray(o.items)&&o.items.length?o.items:[{productName:o.productName,cost:o.cost,salePrice:o.salePrice,quantities:o.quantities||{},pieces:o.pieces||0}];
+  const itemHtml=items.map(item=>{const sizes=SIZES.filter(s=>Number(item.quantities?.[s]||0)>0).map(s=>`${s}: ${item.quantities[s]}`).join(" · ");return `<div class="order-lines"><strong>${esc(item.productName)}</strong><br>${sizes} · ${item.pieces} piezas · Costo ${money(item.cost)} c/u · Venta ${money(item.salePrice)} c/u</div>`;}).join("");
+  return `<div class="order-card"><div class="order-head"><div><div class="order-name">Pedido #${String(o.number).padStart(3,"0")}</div><div class="order-meta">${fmtDate(o.date)} · ${items.length} equipo${items.length===1?'':'s'}</div></div><span class="status ${o.received?'received':''}">${o.received?'RECIBIDO':'PENDIENTE DE RECIBIR'}</span></div>${itemHtml}<div class="order-total">Total del pedido: ${money(o.total)}</div>${!o.received?`<button class="btn green" style="width:100%;margin-top:13px" onclick="receiveOrder('${o.id}')">RECIBIDO</button>`:`<div class="info-box success-text">✓ ${o.pieces} piezas agregadas al inventario.</div>`}</div>`;
+ }).join("");
 }
 
 /* =========================
@@ -3490,7 +2981,7 @@ function payWorker(){
 
  day().movements.push({
 
-  id:makeK10Id(),
+  id:crypto.randomUUID(),
 
   type:"worker",
 
@@ -3631,7 +3122,7 @@ function getDemandSummary(){
 
 function demandOpportunityLabel(x){const cycles=Object.keys(x.cycles||{}).length;if(x.count>=10||cycles>=3)return"🚀 OPORTUNIDAD FUERTE DE CRECIMIENTO";if(x.count>=5||cycles>=2)return"🔥 OPORTUNIDAD DE CRECIMIENTO";if(x.count>=3)return"🟡 EVALUAR";return"👀 OBSERVAR";}
 function openDemandModal(){ensureGrowthData();document.getElementById("demandName").value="";document.getElementById("demandSize").value="Todas";document.getElementById("demandQuantity").value=1;document.getElementById("demandCategory").value="Equipo";document.getElementById("demandNote").value="";openModal("demandModal");}
-function saveMarketDemand(){ensureGrowthData();const name=document.getElementById("demandName").value.trim();const quantity=Math.max(1,Number(document.getElementById("demandQuantity").value)||0);if(!name||quantity<=0)return alert("Completa producto y cantidad.");state.marketDemand.push({id:makeK10Id(),date:today(),cycle:state.growthCycle.cycle||1,name,size:document.getElementById("demandSize").value,quantity,category:document.getElementById("demandCategory").value,note:document.getElementById("demandNote").value.trim()});save();closeModal("demandModal");render();}
+function saveMarketDemand(){ensureGrowthData();const name=document.getElementById("demandName").value.trim();const quantity=Math.max(1,Number(document.getElementById("demandQuantity").value)||0);if(!name||quantity<=0)return alert("Completa producto y cantidad.");state.marketDemand.push({id:crypto.randomUUID(),date:today(),cycle:state.growthCycle.cycle||1,name,size:document.getElementById("demandSize").value,quantity,category:document.getElementById("demandCategory").value,note:document.getElementById("demandNote").value.trim()});save();closeModal("demandModal");render();}
 function deleteMarketDemand(name){
  const clean=String(name||"").trim().toLowerCase();
  if(!clean)return;
@@ -3644,16 +3135,53 @@ function renderMarketDemandReport(){
  const d=getDemandSummary().slice(0,8);
  e.innerHTML=d.length?d.map(x=>`<div class="report-line"><div style="flex:1"><strong>${esc(x.name)}</strong><br><small>${esc(x.category)} · ${x.count} solicitud${x.count===1?'':'es'} · ${demandOpportunityLabel(x)}</small></div><button class="btn light" style="padding:7px 10px;font-size:11px" onclick='deleteMarketDemand(${JSON.stringify(x.name).replace(/'/g,'&#39;')})'>QUITAR</button></div>`).join(''):'<div class="analysis-note">Todavía no hay demandas registradas.</div>';
 }
+function statisticsData(){
+ const sales=allMovements().filter(m=>m.type==="sale"),team={},sizes={},dates={},weekdays={};
+ sales.forEach(m=>{const q=Number(m.quantity||m.pieces||0);team[m.productName]=(team[m.productName]||0)+q;sizes[m.size]=(sizes[m.size]||0)+q;const dom="Día "+Number(m.date.slice(8,10));dates[dom]=(dates[dom]||0)+q;const wd=new Date(m.date+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"});weekdays[wd]=(weekdays[wd]||0)+q;});
+ const sorted=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]),days=Object.keys(state.days||{}),avg=days.length?sales.reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0)/days.length:0;
+ const profitability=Object.entries(team).map(([name,pieces])=>{const rows=sales.filter(m=>m.productName===name),revenue=rows.reduce((a,m)=>a+Number(m.amount||0),0),cogs=rows.reduce((a,m)=>a+(Number(m.unitCost)||0)*Number(m.quantity||m.pieces||0),0);return{name,pieces,revenue,cogs,gross:revenue-cogs,margin:revenue?(revenue-cogs)/revenue:0};}).sort((a,b)=>b.gross-a.gross);
+ return{sales,teams:sorted(team),sizes:sorted(sizes),dates:sorted(dates),weekdays:sorted(weekdays),avg,profitability};
+}
+function renderStatistics(){
+ const e=document.getElementById("statisticsContent");if(!e)return;finalizeCurrentCycleIfDue();const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
+ const ph=cyclePhase(r.elapsed); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${Math.min(50,r.c.pieces)} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
+ const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
+ const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
+ e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed).cls} cycle-blink">●</span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
+}
+
+function monthlyFinancialAnalysis(){
+ const now=new Date(today()+"T12:00:00");
+ const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+ const start=monthStart.toISOString().slice(0,10);
+ const movements=allMovements().filter(m=>m.date>=start && m.date<=today());
+ const sales=movements.filter(m=>m.type==="sale");
+ const expenses=movements.filter(m=>m.type==="expense");
+ const workers=movements.filter(m=>m.type==="worker");
+ const withdrawals=movements.filter(m=>m.type==="withdrawal");
+ const revenue=sales.reduce((a,m)=>a+Number(m.amount||0),0);
+ const cogs=sales.reduce((a,m)=>{
+   const p=state.products.find(x=>x.id===m.productId);
+   const unitCost=m.unitCost!=null?Number(m.unitCost):Number(p?.cost)||0;
+   return a+unitCost*Number(m.quantity||m.pieces||0);
+ },0);
+ const gross=revenue-cogs;
+ const worker=workers.reduce((a,m)=>a+Number(m.amount||0),0);
+ const other=expenses.reduce((a,m)=>a+Number(m.amount||0),0);
+ const withdrawalTotal=withdrawals.reduce((a,m)=>a+Number(m.amount||0),0);
+ const netAfterWithdrawals=gross-worker-other-withdrawalTotal;
+ return{start,revenue,cogs,gross,worker,other,withdrawals:withdrawalTotal,netAfterWithdrawals};
+}
 function pendingOrderQuantities(){
  const pending={};
  (state.orders||[]).filter(o=>!o.received).forEach(o=>{
-  const productKey=String(o.productId||'NEW:'+String(o.productName||'').trim().toLowerCase());
-  SIZES.forEach(size=>{
-   const qty=Number(o.quantities?.[size]||0);
-   if(qty>0){
-    const key=productKey+'|'+size;
-    pending[key]=(pending[key]||0)+qty;
-   }
+  const items=Array.isArray(o.items)&&o.items.length?o.items:[o];
+  items.forEach(item=>{
+   const productKey=String(item.productId||'NEW:'+String(item.productName||'').trim().toLowerCase());
+   SIZES.forEach(size=>{
+    const qty=Number(item.quantities?.[size]||0);
+    if(qty>0){const key=productKey+'|'+size;pending[key]=(pending[key]||0)+qty;}
+   });
   });
  });
  return pending;
@@ -3747,7 +3275,7 @@ function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
  if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
-  state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+  state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
  }
 }
 function currentDebt(){
@@ -3784,9 +3312,9 @@ function openDebtPayment(id){
  if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
  d.remaining=Math.max(0,pending-amount);
  if(d.remaining===0)d.status="paid";
- day().movements.push({id:makeK10Id(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
+ day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:makeK10Id(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
  save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
 }
 function openNewDebt(){
@@ -3797,7 +3325,7 @@ function openNewDebt(){
  if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
  ensurePendingDebts();
  const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
- state.pendingDebts.push({id:makeK10Id(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
  state.initialDebt=Number(state.initialDebt)||0;
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
  save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
@@ -3813,61 +3341,40 @@ function renderDebt(){
  renderCycleHistory();
 }
 
-function statisticsData(){
- const sales=allMovements().filter(m=>m.type==="sale"),team={},sizes={},dates={},weekdays={};
- sales.forEach(m=>{const q=Number(m.quantity||m.pieces||0);team[m.productName]=(team[m.productName]||0)+q;sizes[m.size]=(sizes[m.size]||0)+q;const dom="Día "+Number(m.date.slice(8,10));dates[dom]=(dates[dom]||0)+q;const wd=new Date(m.date+"T12:00:00").toLocaleDateString("es-MX",{weekday:"long"});weekdays[wd]=(weekdays[wd]||0)+q;});
- const sorted=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]),days=Object.keys(state.days||{}),avg=days.length?sales.reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0)/days.length:0;
- const profitability=Object.entries(team).map(([name,pieces])=>{const rows=sales.filter(m=>m.productName===name),revenue=rows.reduce((a,m)=>a+Number(m.amount||0),0),cogs=rows.reduce((a,m)=>a+(Number(m.unitCost)||0)*Number(m.quantity||m.pieces||0),0);return{name,pieces,revenue,cogs,gross:revenue-cogs,margin:revenue?(revenue-cogs)/revenue:0};}).sort((a,b)=>b.gross-a.gross);
- return{sales,teams:sorted(team),sizes:sorted(sizes),dates:sorted(dates),weekdays:sorted(weekdays),avg,profitability};
-}
-function renderStatistics(){
- const e=document.getElementById("statisticsContent");if(!e)return;
- ensureGrowthData();
- const closedNow=finalizeCurrentCycleIfDue();
- const d=statisticsData();
- const c=cycleSales();
- const elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1));
- const ph=cyclePhase(elapsed);
- const sales=Math.min(50,c.pieces);
- const history=cycleHistory();
- const lastClosed=closedNow?history[history.length-1]:null;
- const summary=lastClosed?cycleHistoryReportHTML(lastClosed):`<div class="analysis-note" style="margin-top:0"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>`;
- const list=(arr,n)=>arr.slice(0,n).map((x,i)=>`<div class="report-line"><span><strong>${i+1}. ${esc(x[0])}</strong></span><strong>${x[1]}</strong></div>`).join("")||'<div class="analysis-note">Sin datos registrados.</div>';
- const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
- const inv=currentInventoryAnalysis();
- const storedInitial=Number(state.initialInventoryPieces);
- const initialInv=Number.isFinite(storedInitial)?storedInitial:(state.products||[]).reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||Number(p.stock?.[s])||0),0),0);
- const soldFromInitial=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
- const shouldHave=Math.max(0,initialInv-soldFromInitial);
- e.innerHTML=`<details class="report-card collapsible">
-   <summary><span>🔄 Ciclos en curso</span></summary>
-   <div class="collapse-body">
-     <div class="home-cycle-detail" style="padding:0">
-       <div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div>
-       <div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div>
-       <div class="home-cycle-grid" style="margin-top:10px">
-         <div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div>
-         <div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div>
-       </div>
-       <div style="margin-top:14px">${summary}</div>
-     </div>
-   </div>
- </details>
- <details class="report-card collapsible"><summary><span>📦 Inventario</span></summary><div class="collapse-body"><div class="analysis-grid"><div class="analysis-metric"><span>Piezas iniciales</span><strong>${initialInv}</strong></div><div class="analysis-metric"><span>Piezas vendidas</span><strong>${soldFromInitial}</strong></div><div class="analysis-metric"><span>Debería haber</span><strong>${shouldHave}</strong></div><div class="analysis-metric"><span>Actualmente hay</span><strong>${inv.pieces}</strong></div></div><div class="analysis-note">Costo actual: ${money(inv.cost)} · Venta potencial: ${money(inv.potential)}</div></div></details>
- <details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details>
- <details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details>
- <details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details>
- <details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details>
- <details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details>
- <details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
+/* =========================
+
+   ANÁLISIS INTELIGENTE
+
+========================= */
+
+function salesAnalysis(){
+ const data={};
+ const startDate=state.startDate||today();
+ Object.values(state.days).forEach(d=>{
+  if(d.date<startDate||d.date>today())return;
+  d.movements.forEach(m=>{
+   if(m.type==="sale"&&m.productId){
+    if(!data[m.productId])data[m.productId]={id:m.productId,name:m.productName,sold:0,sizes:{}};
+    data[m.productId].sold+=Number(m.quantity||0);
+    data[m.productId].sizes[m.size]=(data[m.productId].sizes[m.size]||0)+Number(m.quantity||0);
+   }
+  });
+ });
+ return Object.values(data).map(x=>{
+  const replenishBySize={};SIZES.forEach(sz=>{if((x.sizes[sz]||0)>0)replenishBySize[sz]=x.sizes[sz];});
+  return {...x,stock:state.products.find(p=>p.id===x.id)?SIZES.reduce((a,sz)=>a+(state.products.find(p=>p.id===x.id).stock[sz]||0),0):0,replenish:x.sold,replenishBySize,product:state.products.find(p=>p.id===x.id)};
+ }).sort((a,b)=>b.sold-a.sold);
 }
 
-function cycleHistoryReportHTML(h){
- const groups=(h.groupedItems||[]).map(g=>{
-  const rows=(g.items||[]).map(x=>`<div class="report-line"><span><strong>${esc(x.size)}</strong><br><small>Vendidas: ${x.sold||0} · Reponer: ${x.replenish||0} · Demanda: ${x.demand||0} · Ya pedido: ${x.alreadyOrdered||0} · Falta pedir: ${x.recommended||0}</small></span><strong>${x.recommended||0}</strong></div>`).join("");
-  return `<div class="card" style="margin:8px 0;padding:12px 14px"><strong>${esc(g.name)}</strong>${rows}</div>`;
- }).join("");
- return `<div class="analysis-note" style="margin-top:0"><strong>RESUMEN DEL CICLO ${h.cycle}</strong><br>${fmtDate(h.start)} al ${fmtDate(h.end)} · ${esc(h.trigger)}<br><strong>${h.pieces} piezas vendidas</strong></div>${groups||'<div class="analysis-note">No hubo ventas ni demanda.</div>'}<div class="analysis-note"><strong>Total por reponer:</strong> ${h.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${h.totalDemand} · <strong>Total recomendado:</strong> ${h.totalRecommended}</div>${h.pendingPieces>0?`<div class="analysis-note">📦 ${h.pendingPieces} piezas quedaron en pedidos pendientes.</div>`:''}`;
+function generateImmediateReport(){
+ const r=growthPurchaseAnalysis();
+ r.cycleNumber=Number(state.growthCycle.cycle)||1;
+ const report=document.createElement("div");report.id="immediateReportWindow";report.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeImmediateReport()"><div style="max-width:760px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">REPORTE INMEDIATO</div><div style="font-size:11px;color:#bbb;margin-top:3px">Mismo reporte del ciclo, generado ahora sin cerrarlo</div></div><button onclick="closeImmediateReport()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div style="padding:18px">${cycleReportHTML(r,"REPORTE DE REPOSICIÓN Y DEMANDA")}</div></div></div>`;document.body.appendChild(report);
+}
+
+function closeImmediateReport(){
+ const report=document.getElementById("immediateReportWindow");
+ if(report)report.remove();
 }
 
 function renderReports(){
@@ -4102,7 +3609,7 @@ function renderHomeCycle(){
  const elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1));
  const ph=cyclePhase(elapsed);
  const sales=Math.min(50,c.pieces);
- e.innerHTML=`<details open><summary class="home-cycle-summary"><span class="home-cycle-title">🔄 CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div></div></details>`;
+ e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink">●</span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div></div></details>`;
 }
 
 function refreshHomeSales(){
@@ -4129,6 +3636,7 @@ function render(){
 
  renderBusinessAnalysis();
  renderDebt();
+ renderHomeCycle();
 
  document.getElementById("todayLabel").textContent=
 
