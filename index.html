@@ -578,7 +578,7 @@ header{padding:20px 18px 10px}
 
     <div class="stat">
 
-      <span>VENTAS</span>
+      <span>TOTAL</span>
 
       <strong id="todaySales">$0</strong>
 
@@ -745,7 +745,6 @@ header{padding:20px 18px 10px}
   <details class="report-card collapsible" id="growthPurchaseCard">
     <summary><span>🚀 Crecimiento</span></summary>
     <div class="collapse-body">
-      <p style="margin-bottom:10px">Notas y consejos de crecimiento según cómo va el negocio.</p>
       <div id="smartReport"></div>
     </div>
   </details>
@@ -3271,7 +3270,9 @@ function cycleObservationsHTML(r){
  return `<div class="analysis-note"><strong>OBSERVACIONES</strong>${notes.map(n=>`<div style="margin-top:7px">• ${n}</div>`).join('')}</div>`;
 }
 
-function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN"){
+function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
+ const onlyPending=!!options.onlyPending;
+ const includeObservations=options.includeObservations!==false;
  const sizes=SIZES;
  const groups=r.groupedItems.length?r.groupedItems.map(g=>{
   const sizeCells=sizes.map(sz=>{
@@ -3282,8 +3283,8 @@ function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN"){
   const sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0);
   const demand=(g.items||[]).reduce((a,x)=>a+Number(x.demandPurchase||0),0);
   return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Vendidas: ${sold} · Demanda adicional: ${demand}</div></div>`;
- }).join(""):'<div class="analysis-note">No hay ventas ni demanda registrada en este ciclo.</div>';
- return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div>${cycleObservationsHTML(r)}${""}`;
+ }).join(""):`<div class="analysis-note">${onlyPending?"No hay piezas pendientes por pedir.":"No hay ventas ni demanda registrada en este ciclo."}</div>`;
+ return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div>${includeObservations?cycleObservationsHTML(r):""}${""}`;
 }
 
 function renderCycleHistory(){
@@ -3298,64 +3299,50 @@ function renderCycleHistory(){
  }).join(""):'<div class="analysis-note">Todavía no hay ciclos cerrados.</div>';
 }
 
+function growthSalesLineChart(r){
+ const start=r.c.start,end=r.c.end;
+ const days=Math.max(1,daysBetweenKeys(start,end)+1);
+ const values=[];
+ for(let i=0;i<days;i++){
+  const date=addDaysKey(start,i);
+  const total=(r.c.sales||[]).filter(m=>m.date===date).reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
+  values.push(total);
+ }
+ const w=620,h=220,padL=38,padR=18,padT=18,padB=34;
+ const max=Math.max(1,...values),innerW=w-padL-padR,innerH=h-padT-padB;
+ const points=values.map((v,i)=>{
+  const x=days===1?padL+innerW/2:padL+(i/(days-1))*innerW;
+  const y=padT+innerH-(v/max)*innerH;
+  return{x,y,v};
+ });
+ const poly=points.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+ const labels=points.map((p,i)=>{
+  if(days>10&&i%2!==0&&i!==days-1)return "";
+  return `<text x="${p.x.toFixed(1)}" y="${h-10}" text-anchor="middle" font-size="9" fill="#777">${i+1}</text>`;
+ }).join("");
+ const dots=points.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="#1769aa"><title>${p.v} piezas</title></circle>`).join("");
+ const grid=[0,.5,1].map(t=>{const y=padT+innerH-(t*innerH);const val=Math.round(max*t);return `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#e7e7e7" stroke-width="1"/><text x="${padL-7}" y="${y+3}" text-anchor="end" font-size="9" fill="#777">${val}</text>`;}).join("");
+ return `<div class="card" style="margin:0;padding:10px;overflow:hidden"><svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Ventas diarias del ciclo" style="display:block"><g>${grid}</g><polyline points="${poly}" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>${dots}${labels}</svg></div>`;
+}
+function growthSuggestedItems(r){
+ return (r.items||[]).filter(x=>Number(x.sold||0)>0).map(x=>{
+  const sold=Number(x.sold)||0;
+  const pending=Number(x.alreadyOrdered)||0;
+  const baseGrowth=sold>=5?Math.min(2,Math.max(1,Math.ceil(sold*0.2))):0;
+  const uncoveredGrowth=Math.max(0,baseGrowth-Math.max(0,pending-sold));
+  return {...x,suggestedGrowth:uncoveredGrowth};
+ }).filter(x=>x.suggestedGrowth>0).sort((a,b)=>b.suggestedGrowth-a.suggestedGrowth||b.sold-a.sold||a.name.localeCompare(b.name));
+}
 function renderGrowthReport(){
  const e=document.getElementById("smartReport");if(!e)return;
  ensureGrowthData();
  const r=growthPurchaseAnalysis();
- const debt=Number(currentDebt())||0;
- const available=Math.max(0,Number(cash())||0);
- const todayDate=new Date(today()+"T12:00:00");
- let nextRent=new Date(todayDate.getFullYear(),todayDate.getMonth(),21);
- if(nextRent<todayDate)nextRent=new Date(todayDate.getFullYear(),todayDate.getMonth()+1,21);
- const daysToRent=Math.max(0,Math.ceil((nextRent-todayDate)/86400000));
- const rent=5500;
- const salesItems=(r.items||[]).filter(x=>Number(x.sold||0)>0).sort((a,b)=>Number(b.sold||0)-Number(a.sold||0));
- const notes=[];
- const mandatoryCost=Number(r.mandatoryCost)||0;
- const afterMandatory=Math.max(0,available-mandatoryCost);
- const rentReserve=Math.min(rent,afterMandatory);
- const afterRent=Math.max(0,afterMandatory-rentReserve);
- const safeDebtPayment=debt>0?Math.min(debt,Math.max(0,afterRent)):0;
- const afterDebt=Math.max(0,afterRent-safeDebtPayment);
- const top=salesItems[0];
- if(top){
-  const sold=Number(top.sold)||0;
-  const stock=Number(top.stock)||0;
-  const extra=sold>=5?Math.min(2,Math.max(1,Math.ceil(sold*0.2))):0;
-  if(sold<=2){
-   notes.push(`Movimiento bajo: ${esc(top.name)} talla ${esc(top.size)} vendió ${sold} pieza${sold===1?'':'s'}. Conviene reponer esas ${sold} pieza${sold===1?'':'s'} sin agregar crecimiento todavía.`);
-  }else if(extra>0){
-   notes.push(`Buen movimiento: ${esc(top.name)} talla ${esc(top.size)} vendió ${sold} piezas. Primero repón las ${sold}; además puedes considerar ${extra} pieza${extra===1?'':'s'} extra${stock>0?' de esta talla':''} como crecimiento.`);
-  }else{
-   notes.push(`${esc(top.name)} talla ${esc(top.size)} fue de las más movidas con ${sold} piezas vendidas. Conviene asegurar primero la reposición de las ${sold} piezas.`);
-  }
- }else{
-  notes.push('Todavía no hay ventas suficientes registradas para recomendar crecimiento por producto o talla.');
- }
- if(r.demand && r.demand.length){
-  const topDemand=r.demand.slice().sort((a,b)=>Number(b.count||0)-Number(a.count||0))[0];
-  if(topDemand)notes.push(`Demanda registrada: ${esc(topDemand.name)} tiene ${Number(topDemand.count||0)} solicitud${Number(topDemand.count||0)===1?'':'es'}. Conviene observar esa oportunidad y relacionarla con las tallas solicitadas antes de aumentar inventario.`);
- }
- if(mandatoryCost>0){
-  notes.push(`La reposición calculada requiere aproximadamente ${money(mandatoryCost)} a costo. Ese dinero debe considerarse antes de destinar efectivo a crecimiento.`);
- }
- if(debt>0){
-  if(safeDebtPayment>0)notes.push(`Tienes ${money(debt)} en pagos pendientes. Después de considerar la reposición y reservar dinero para el arriendo, podrías considerar un abono de hasta ${money(safeDebtPayment)}, dejando aproximadamente ${money(debt-safeDebtPayment)} de deuda, sin comprometer el efectivo disponible calculado.`);
-  else notes.push(`Tienes ${money(debt)} en pagos pendientes. Por ahora conviene no comprometer dinero adicional en un abono si eso reduce el efectivo necesario para la reposición y el arriendo.`);
- }else{
-  notes.push('No hay pagos pendientes registrados. Puedes mantener el efectivo reservado para operación, arriendo y reposición antes de aumentar inventario.');
- }
- if(available<rent){
-  notes.push(`El arriendo considerado es de ${money(rent)} y faltan ${daysToRent} día${daysToRent===1?'':'s'} para el próximo día 21. Actualmente hay ${money(available)} disponibles, por lo que no conviene comprometer todo el efectivo en crecimiento.`);
- }else{
-  notes.push(`El arriendo considerado es de ${money(rent)} y faltan ${daysToRent} día${daysToRent===1?'':'s'} para el próximo día 21. Después de contemplar la reposición (${money(mandatoryCost)}), se pueden reservar hasta ${money(rentReserve)} para el arriendo y queda aproximadamente ${money(afterRent)} antes de considerar otros gastos o deuda.`);
- }
- if(afterDebt>0 && mandatoryCost===0){
-  notes.push(`Después de las reservas calculadas, quedan aproximadamente ${money(afterDebt)} disponibles. Si los demás gastos están cubiertos, puedes evaluar una compra de crecimiento pequeña y basada en las tallas con mayor movimiento.`);
- }
- e.innerHTML=`<div class="analysis-note"><strong>NOTAS Y CONSEJOS DE CRECIMIENTO</strong></div>${notes.map(n=>`<div class="analysis-note" style="margin-top:8px">💡 ${n}</div>`).join('')}`;
+ const suggestions=growthSuggestedItems(r);
+ const suggestionHTML=suggestions.length?suggestions.map(x=>`<div class="report-line"><span>${esc(x.name)} — ${esc(x.size)}</span><strong>+${x.suggestedGrowth}</strong></div>`).join(""):'<div class="analysis-note">Sin crecimiento sugerido.</div>';
+ e.innerHTML=`${growthSalesLineChart(r)}<div style="margin-top:14px;font-weight:900">Crecimiento sugerido</div><div style="margin-top:4px">${suggestionHTML}</div>`;
  renderCycleHistory();
 }
+
 function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
@@ -3451,9 +3438,15 @@ function generateImmediateReport(){
  try{
   const r=growthPurchaseAnalysis();
   r.cycleNumber=Number(state.growthCycle.cycle)||1;
+  r.items=(r.items||[]).filter(x=>Number(x.recommended||0)>0);
+  const grouped={};r.items.forEach(x=>{const k=x.productId||("new:"+x.name.toLowerCase());if(!grouped[k])grouped[k]={name:x.name,items:[]};grouped[k].items.push(x);});
+  r.groupedItems=Object.values(grouped);
+  r.totalRecommended=r.items.reduce((a,x)=>a+Number(x.recommended||0),0);
+  r.totalReplenishment=r.items.reduce((a,x)=>a+Number(x.replenish||0),0);
+  r.totalDemand=r.items.reduce((a,x)=>a+Number(x.demandPurchase||0),0);
   const target=document.getElementById("immediateReport");
-  if(target){target.innerHTML=cycleReportHTML(r,"REPORTE INMEDIATO");target.scrollIntoView({behavior:"smooth",block:"start"});return;}
-  const report=document.createElement("div");report.id="immediateReportWindow";report.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeImmediateReport()"><div style="max-width:760px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">REPORTE INMEDIATO</div><div style="font-size:11px;color:#bbb;margin-top:3px">Generado ahora sin cerrar el ciclo</div></div><button onclick="closeImmediateReport()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div style="padding:18px">${cycleReportHTML(r,"REPORTE INMEDIATO")}${cycleObservationsHTML(r)}</div></div></div>`;document.body.appendChild(report);
+  if(target){target.innerHTML=cycleReportHTML(r,"REPORTE INMEDIATO",{onlyPending:true,includeObservations:false});target.scrollIntoView({behavior:"smooth",block:"start"});return;}
+  const report=document.createElement("div");report.id="immediateReportWindow";report.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeImmediateReport()"><div style="max-width:760px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">REPORTE INMEDIATO</div><div style="font-size:11px;color:#bbb;margin-top:3px">Generado ahora sin cerrar el ciclo</div></div><button onclick="closeImmediateReport()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div style="padding:18px">${cycleReportHTML(r,"REPORTE INMEDIATO",{onlyPending:true,includeObservations:false})}</div></div></div>`;document.body.appendChild(report);
  }catch(err){console.error(err);alert("No se pudo generar el reporte inmediato. Revisa los datos del ciclo e inténtalo nuevamente.");}
 }
 
@@ -3485,13 +3478,29 @@ function daysBetweenKeys(a,b){
   return Math.floor((db-da)/86400000);
 }
 
+function dayNetTotal(date){
+ const d=state.days?.[date];
+ if(!d)return 0;
+ return (d.movements||[]).reduce((total,m)=>{
+  const amount=Number(m.amount)||0;
+  if(m.type==="sale"||m.type==="income")return total+amount;
+  if(m.type==="expense"||m.type==="worker"||m.type==="withdrawal")return total-amount;
+  return total;
+ },0);
+}
+function accumulatedNetTotal(date){
+ return Object.values(state.days||{}).filter(d=>d?.date&&d.date<=date).reduce((total,d)=>total+dayNetTotal(d.date),0);
+}
+
 function renderHistory(){
  const days=Object.values(state.days||{}).sort((a,b)=>b.date.localeCompare(a.date));
- const html=days.length?days.map(d=>`
-   <div class="history-day" onclick="openHistory('${d.date}')">
-    <div><strong>${fmtDate(d.date)}</strong><small>${d.movements.length} movimientos</small></div>
-    <div style="text-align:right"><div class="closed">${d.closed?"CERRADO":"ABIERTO"}</div><strong>${money(dayCash(d.date))}</strong></div>
-   </div>`).join(""):'<div class="empty">No hay días.</div>';
+ const html=days.length?days.map(d=>{
+  const total=dayNetTotal(d.date), accumulated=accumulatedNetTotal(d.date);
+  return `<div class="history-day" onclick="openHistory('${d.date}')">
+   <div><strong>${fmtDate(d.date)}</strong><small>${d.movements.length} movimientos</small></div>
+   <div style="text-align:right"><div class="closed">${d.closed?"CERRADO":"ABIERTO"}</div><strong>${money(total)}</strong><small>Total · Acumulado ${money(accumulated)}</small></div>
+  </div>`;
+ }).join(""):'<div class="empty">No hay días.</div>';
  [document.getElementById("historyList"),document.getElementById("salesHistoryList")].filter(Boolean).forEach(el=>el.innerHTML=html);
 }
 
@@ -3515,7 +3524,7 @@ function openHistory(date){
 
   `${d.closed?"Día cerrado":"Día abierto"} · `+
 
-  `Saldo ${money(dayCash(date))}`;
+  `Total ${money(dayNetTotal(date))} · Acumulado ${money(accumulatedNetTotal(date))}`;
 
  historyContent.innerHTML=`
 
@@ -3704,7 +3713,7 @@ function refreshHomeSales(){
  const pieces=sales.reduce((sum,m)=>sum+Number(m.quantity||m.pieces||0),0);
  const salesEl=document.getElementById("todaySales");
  const piecesEl=document.getElementById("todayPieces");
- if(salesEl)salesEl.textContent=money(total);
+ if(salesEl)salesEl.textContent=money(dayNetTotal(today()));
  if(piecesEl)piecesEl.textContent=pieces;
  renderMovements("homeMovements",d.movements||[]);
 }
@@ -3772,9 +3781,11 @@ function render(){
 
  const todayPieces=sales.reduce((a,m)=>a+(Number(m.quantity||m.pieces)||0),0);
 
+ const todayTotal=dayNetTotal(today());
+
  document.getElementById("todaySales").textContent=
 
-  money(todaySales);
+  money(todayTotal);
 
  document.getElementById("todayPieces").textContent=
 
