@@ -1522,6 +1522,15 @@ function save(){
 
 }
 
+function uid(){
+ try{
+  if(window.crypto && typeof window.crypto.randomUUID==="function"){
+   return window.uid();
+  }
+ }catch(e){}
+ return "k10-"+Date.now()+"-"+Math.random().toString(36).slice(2,10);
+}
+
 function esc(x){
 
  return String(x)
@@ -1749,7 +1758,7 @@ function saveProduct(){
 
  const p={
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   name,
 
@@ -2021,7 +2030,7 @@ function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
  if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
-  state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
+  state.pendingDebts.push({id:uid(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
  }
 }
 function currentDebt(){
@@ -2058,9 +2067,9 @@ function openDebtPayment(id){
  if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
  d.remaining=Math.max(0,pending-amount);
  if(d.remaining===0)d.status="paid";
- day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
+ day().movements.push({id:uid(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
+ state.debtPayments.push({id:uid(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
  save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
 }
 function openNewDebt(){
@@ -2071,7 +2080,7 @@ function openNewDebt(){
  if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
  ensurePendingDebts();
  const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
- state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
+ state.pendingDebts.push({id:uid(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
  state.initialDebt=Number(state.initialDebt)||0;
  state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
  save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
@@ -2157,7 +2166,7 @@ function saveMovement(){
 
  day().movements.push({
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   type:movementType,
 
@@ -2252,7 +2261,7 @@ function saveSale(){
 
  day().movements.push({
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   type:"sale",
 
@@ -2297,11 +2306,8 @@ function saveSale(){
 function totalPieces(){
 
  return state.products.reduce((total,p)=>
-
   total+
-
-  SIZES.reduce((a,s)=>a+(p.stock[s]||0),0)
-
+  SIZES.reduce((a,s)=>a+(Number(p.stock?.[s])||0),0)
  ,0);
 
 }
@@ -2323,7 +2329,10 @@ function renderInventory(){
    <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
- const initialTotal=Number(state.initialInventoryPieces)!=null?Number(state.initialInventoryPieces):state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(p.initialStock?.[s]||0),0),0);
+ const storedInitial=Number(state.initialInventoryPieces);
+ const initialTotal=Number.isFinite(storedInitial)
+  ?storedInitial
+  :state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
  const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
  const currentTotal=totalPieces();
  const expected=Math.max(0,initialTotal-soldTotal);
@@ -2371,7 +2380,7 @@ function quickSale(id,s){
 
  day().movements.push({
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   type:"sale",
 
@@ -2561,7 +2570,7 @@ function saveAdjustment(){
 
    day().movements.push({
 
-    id:crypto.randomUUID(),
+    id:uid(),
 
     type:"inventory_adjustment",
 
@@ -2687,10 +2696,10 @@ function createApartado(){
   if((q[size]||0)>(p.stock[size]||0))return alert(`No hay suficientes piezas talla ${size}. Disponible: ${p.stock[size]||0}.`);
  }
  SIZES.forEach(size=>{p.stock[size]=(p.stock[size]||0)-(q[size]||0);});
- const a={id:crypto.randomUUID(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
+ const a={id:uid(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
  state.apartados.push(a);
  if(deposit>0){
-  day().movements.push({id:crypto.randomUUID(),type:"income",concept:`Anticipo apartado #${String(a.number).padStart(3,"0")} — ${p.name}`,amount:deposit,apartadoId:a.id,timestamp:Date.now(),time:timeNow()});
+  day().movements.push({id:uid(),type:"income",concept:`Anticipo apartado #${String(a.number).padStart(3,"0")} — ${p.name}`,amount:deposit,apartadoId:a.id,timestamp:Date.now(),time:timeNow()});
  }
  save(); closeModal("apartadoModal"); render();
  alert(`Apartado #${String(a.number).padStart(3,"0")} creado.\n\n${pieces} piezas bajaron del inventario.`);
@@ -2703,7 +2712,7 @@ function finishApartado(id){
  const remaining=Math.max(0,Number(a.total)-Number(a.deposit));
  if(!confirm(`¿Marcar apartado #${String(a.number).padStart(3,"0")} como PAGADO?\n\nResta por cobrar: ${money(remaining)}`))return;
  if(remaining>0){
-  day().movements.push({id:crypto.randomUUID(),type:"sale",concept:`Pago final apartado #${String(a.number).padStart(3,"0")} — ${a.productName}`,amount:remaining,apartadoId:a.id,productId:a.productId,productName:a.productName,quantity:a.pieces,pieces:a.pieces,unitCost:(state.products.find(p=>p.id===a.productId)?.cost||0),timestamp:Date.now(),time:timeNow()});
+  day().movements.push({id:uid(),type:"sale",concept:`Pago final apartado #${String(a.number).padStart(3,"0")} — ${a.productName}`,amount:remaining,apartadoId:a.id,productId:a.productId,productName:a.productName,quantity:a.pieces,pieces:a.pieces,unitCost:(state.products.find(p=>p.id===a.productId)?.cost||0),timestamp:Date.now(),time:timeNow()});
  }
  a.status="paid"; a.paidDate=today(); a.remaining=0;
  save(); render();
@@ -2962,7 +2971,7 @@ function createOrder(){
 
   const newProduct={
 
-   id:crypto.randomUUID(),
+   id:uid(),
 
    name:productName,
 
@@ -2988,7 +2997,7 @@ function createOrder(){
 
  const order={
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   number:state.orders.length+1,
 
@@ -3031,7 +3040,7 @@ function createOrder(){
 
  day().movements.push({
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   type:"order",
 
@@ -3095,7 +3104,7 @@ function receiveOrder(id){
 
   p={
 
-   id:crypto.randomUUID(),
+   id:uid(),
 
    name:o.productName,
 
@@ -3485,7 +3494,7 @@ function payWorker(){
 
  day().movements.push({
 
-  id:crypto.randomUUID(),
+  id:uid(),
 
   type:"worker",
 
@@ -3626,7 +3635,7 @@ function getDemandSummary(){
 
 function demandOpportunityLabel(x){const cycles=Object.keys(x.cycles||{}).length;if(x.count>=10||cycles>=3)return"🚀 OPORTUNIDAD FUERTE DE CRECIMIENTO";if(x.count>=5||cycles>=2)return"🔥 OPORTUNIDAD DE CRECIMIENTO";if(x.count>=3)return"🟡 EVALUAR";return"👀 OBSERVAR";}
 function openDemandModal(){ensureGrowthData();document.getElementById("demandName").value="";document.getElementById("demandSize").value="Todas";document.getElementById("demandQuantity").value=1;document.getElementById("demandCategory").value="Equipo";document.getElementById("demandNote").value="";openModal("demandModal");}
-function saveMarketDemand(){ensureGrowthData();const name=document.getElementById("demandName").value.trim();const quantity=Math.max(1,Number(document.getElementById("demandQuantity").value)||0);if(!name||quantity<=0)return alert("Completa producto y cantidad.");state.marketDemand.push({id:crypto.randomUUID(),date:today(),cycle:state.growthCycle.cycle||1,name,size:document.getElementById("demandSize").value,quantity,category:document.getElementById("demandCategory").value,note:document.getElementById("demandNote").value.trim()});save();closeModal("demandModal");render();}
+function saveMarketDemand(){ensureGrowthData();const name=document.getElementById("demandName").value.trim();const quantity=Math.max(1,Number(document.getElementById("demandQuantity").value)||0);if(!name||quantity<=0)return alert("Completa producto y cantidad.");state.marketDemand.push({id:uid(),date:today(),cycle:state.growthCycle.cycle||1,name,size:document.getElementById("demandSize").value,quantity,category:document.getElementById("demandCategory").value,note:document.getElementById("demandNote").value.trim()});save();closeModal("demandModal");render();}
 function deleteMarketDemand(name){
  const clean=String(name||"").trim().toLowerCase();
  if(!clean)return;
@@ -3658,9 +3667,15 @@ function renderStatistics(){
  const history=cycleHistory();
  const lastClosed=closedNow?history[history.length-1]:null;
  const summary=lastClosed?cycleHistoryReportHTML(lastClosed):`<div class="analysis-note" style="margin-top:0"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>`;
+ const inv=currentInventoryAnalysis();
+ const initialStored=Number(state.initialInventoryPieces);
+ const initialTotal=Number.isFinite(initialStored)?initialStored:(state.products||[]).reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(Number(p.initialStock?.[s])||0),0),0);
+ const soldTotal=allMovements().filter(m=>m.type==="sale").reduce((a,m)=>a+(Number(m.quantity||m.pieces)||0),0);
+ const expected=Math.max(0,initialTotal-soldTotal);
  const list=(arr,n)=>arr.slice(0,n).map((x,i)=>`<div class="report-line"><span><strong>${i+1}. ${esc(x[0])}</strong></span><strong>${x[1]}</strong></div>`).join("")||'<div class="analysis-note">Sin datos registrados.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
- e.innerHTML=`<details class="report-card collapsible">
+ e.innerHTML=`
+ <details class="report-card collapsible">
    <summary><span>🔄 Ciclos en curso</span></summary>
    <div class="collapse-body">
      <div class="home-cycle-detail" style="padding:0">
@@ -3672,6 +3687,18 @@ function renderStatistics(){
        </div>
        <div style="margin-top:14px">${summary}</div>
      </div>
+   </div>
+ </details>
+ <details class="report-card collapsible">
+   <summary><span>📦 Inventario actual</span></summary>
+   <div class="collapse-body">
+     <div class="analysis-grid">
+       <div class="analysis-metric"><span>Piezas iniciales</span><strong>${initialTotal}</strong></div>
+       <div class="analysis-metric"><span>Piezas vendidas</span><strong>${soldTotal}</strong></div>
+       <div class="analysis-metric"><span>Debería haber</span><strong>${expected}</strong></div>
+       <div class="analysis-metric"><span>Actualmente hay</span><strong>${Number(inv.pieces)||0}</strong></div>
+     </div>
+     <div class="analysis-note">Costo actual ${money(Number(inv.cost)||0)} · Venta potencial ${money(Number(inv.potential)||0)} · Utilidad potencial ${money((Number(inv.potential)||0)-(Number(inv.cost)||0))}</div>
    </div>
  </details>
  <details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details>
