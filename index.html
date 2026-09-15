@@ -405,7 +405,7 @@ header{padding:20px 18px 10px}
 .cycle-alert{display:inline-flex;align-items:center;gap:5px;background:#fff3cd;color:#8a5a00;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900;white-space:nowrap;}
 .cycle-alert.today{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite;}
 .priority-dot{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;white-space:nowrap}.priority-dot.red{background:#ffe1e1;color:#b42318}.priority-dot.orange{background:#fff0df;color:#b45309}.priority-dot.yellow{background:#fff7cc;color:#8a5a00}.priority-dot.green{background:#e8f7ec;color:#187a3d}.cycle-alert.red{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite}.cycle-alert.orange{background:#fff0df;color:#b45309}.cycle-alert.yellow{background:#fff7cc;color:#8a5a00}.cycle-alert.green{background:#e8f7ec;color:#187a3d}
-.home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-indicator{display:inline-flex;width:12px;height:12px;border-radius:50%;vertical-align:-1px}.cycle-indicator.cycle-phase-red{background:#d92d20}.cycle-indicator.cycle-phase-yellow{background:#eab308}.cycle-indicator.cycle-phase-orange{background:#f97316}.cycle-indicator.cycle-phase-green{background:#16a34a}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
+.home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-indicator{display:inline-flex;width:12px;height:12px;border-radius:50%;vertical-align:-1px;border:0;box-shadow:none}.cycle-indicator.cycle-phase-red{background:#d92d20 !important}.cycle-indicator.cycle-phase-yellow{background:#eab308 !important}.cycle-indicator.cycle-phase-orange{background:#f97316 !important}.cycle-indicator.cycle-phase-green{background:#16a34a !important}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
 @keyframes k10Pulse{0%,100%{opacity:1}50%{opacity:.55}}
 </style>
 
@@ -2787,7 +2787,7 @@ function receiveOrder(id){
   p.price=Number(item.salePrice)||p.price;p.cost=Number(item.cost)||p.cost;
   SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities?.[size])||0));
  });
- o.received=true;o.status="received";o.receivedDate=today();save();render();alert(`Pedido recibido.\n\n${o.pieces} piezas agregadas al inventario.`);
+ o.received=true;o.status="received";o.receivedDate=today();ensureRegisteredPieces();state.registeredPieces=(Number(state.registeredPieces)||0)+Number(o.pieces||0);o.registered=true;save();render();alert(`Pedido recibido.\n\n${o.pieces} piezas agregadas al inventario.`);
 }
 function renderOrders(){
  const e=document.getElementById("ordersList");
@@ -3252,6 +3252,25 @@ function growthPurchaseAnalysis(){
  return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand,mandatoryCost,availableCash,debt,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
 }
 
+function cycleObservationsHTML(r){
+ const notes=[];
+ const salesItems=(r.items||[]).filter(x=>Number(x.sold||0)>0).sort((a,b)=>Number(b.sold||0)-Number(a.sold||0));
+ const top=salesItems[0];
+ if(top){
+  const sold=Number(top.sold)||0;
+  if(sold<=2)notes.push(`${esc(top.name)} talla ${esc(top.size)} tuvo movimiento bajo: ${sold} pieza${sold===1?'':'s'}. Conviene reponer solamente las piezas vendidas.`);
+  else { const extra=sold>=5?Math.min(2,Math.max(1,Math.ceil(sold*.2))):0; notes.push(`${esc(top.name)} talla ${esc(top.size)} fue de las más movidas con ${sold} piezas. Primero repón las ${sold}${extra?` y puedes considerar ${extra} pieza${extra===1?'':'s'} extra como crecimiento`:''}.`); }
+ }else notes.push('Aún no hay ventas suficientes para detectar un producto o talla de mayor movimiento.');
+ const demand=r.demand||[];
+ if(demand.length){const d=demand.slice().sort((a,b)=>Number(b.count||0)-Number(a.count||0))[0];if(d)notes.push(`La demanda también muestra interés por ${esc(d.name)} con ${Number(d.count||0)} solicitud${Number(d.count||0)===1?'':'es'}.`);}
+ const debt=Number(r.debt)||0, available=Math.max(0,Number(r.availableCash)||0), mandatory=Number(r.mandatoryCost)||0;
+ const afterRep=Math.max(0,available-mandatory), rent=Math.min(5500,afterRep), afterRent=Math.max(0,afterRep-rent), abono=debt?Math.min(debt,afterRent):0;
+ if(debt){notes.push(abono>0?`Pagos pendientes: ${money(debt)}. Después de considerar reposición y apartar ${money(rent)} para el arriendo, un abono prudente sería de hasta ${money(abono)}, dejando ${money(debt-abono)} pendientes.`:`Pagos pendientes: ${money(debt)}. Por ahora conviene conservar el efectivo para operación, reposición y arriendo antes de abonar.`);}else notes.push('No hay pagos pendientes registrados actualmente.');
+ const now=new Date(today()+"T12:00:00");let rentDate=new Date(now.getFullYear(),now.getMonth(),21);if(rentDate<now)rentDate=new Date(now.getFullYear(),now.getMonth()+1,21);const days=Math.max(0,Math.ceil((rentDate-now)/86400000));
+ notes.push(`Arriendo: ${money(5500)}. Faltan ${days} día${days===1?'':'s'} para el próximo día 21. El reporte considera esta reserva antes de recomendar crecimiento.`);
+ return `<div class="analysis-note"><strong>OBSERVACIONES</strong>${notes.map(n=>`<div style="margin-top:7px">• ${n}</div>`).join('')}</div>`;
+}
+
 function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN"){
  const sizes=SIZES;
  const groups=r.groupedItems.length?r.groupedItems.map(g=>{
@@ -3264,7 +3283,7 @@ function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN"){
   const demand=(g.items||[]).reduce((a,x)=>a+Number(x.demandPurchase||0),0);
   return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Vendidas: ${sold} · Demanda adicional: ${demand}</div></div>`;
  }).join(""):'<div class="analysis-note">No hay ventas ni demanda registrada en este ciclo.</div>';
- return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div><div class="analysis-note"><strong>Nota:</strong> Este reporte refleja las observaciones del negocio según las ventas, la demanda y los pedidos registrados hasta este momento. La reposición se calcula con esos datos y no cierra el ciclo.</div>`;
+ return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div>${cycleObservationsHTML(r)}${""}`;
 }
 
 function renderCycleHistory(){
@@ -3283,21 +3302,60 @@ function renderGrowthReport(){
  const e=document.getElementById("smartReport");if(!e)return;
  ensureGrowthData();
  const r=growthPurchaseAnalysis();
- const sold=r.c.pieces||0;
- const debt=currentDebt();
- const available=cash();
- const top=(r.groupedItems||[]).flatMap(g=>(g.items||[]).map(x=>({name:g.name,size:x.size,sold:Number(x.sold||0)}))).sort((a,b)=>b.sold-a.sold)[0];
+ const debt=Number(currentDebt())||0;
+ const available=Math.max(0,Number(cash())||0);
+ const todayDate=new Date(today()+"T12:00:00");
+ let nextRent=new Date(todayDate.getFullYear(),todayDate.getMonth(),21);
+ if(nextRent<todayDate)nextRent=new Date(todayDate.getFullYear(),todayDate.getMonth()+1,21);
+ const daysToRent=Math.max(0,Math.ceil((nextRent-todayDate)/86400000));
+ const rent=5500;
+ const salesItems=(r.items||[]).filter(x=>Number(x.sold||0)>0).sort((a,b)=>Number(b.sold||0)-Number(a.sold||0));
  const notes=[];
- if(top&&top.sold>0) notes.push(`Esta playera fue una de las que más se movió: ${esc(top.name)} talla ${esc(top.size)}. Te recomiendo considerar ${Math.max(2,top.sold)} pieza${Math.max(2,top.sold)===1?'':'s'} para crecimiento.`);
- else notes.push('Todavía no hay suficientes ventas en el ciclo para detectar una playera con mayor movimiento. Sigue registrando las ventas.');
- if(debt>0) notes.push(`Tienes ${money(debt)} en pagos pendientes. Conviene considerar un abono sin comprometer el dinero necesario para operar.`);
- else notes.push('No tienes pagos pendientes registrados. Si el flujo de caja lo permite, puedes reservar parte del dinero para una próxima compra o para crecimiento.');
- if(available>=5500) notes.push('El flujo disponible permite considerar apartar $5,500 para el arriendo antes de destinar dinero adicional a crecimiento.');
- else notes.push('Antes de hacer compras de crecimiento, conviene cuidar primero el dinero necesario para los gastos fijos del negocio.');
- e.innerHTML=`<div class="analysis-note"><strong>NOTAS Y CONSEJOS DE CRECIMIENTO</strong><br>Estas observaciones se generan según cómo va el negocio en este momento.</div>${notes.map(n=>`<div class="analysis-note" style="margin-top:8px">💡 ${n}</div>`).join('')}`;
+ const mandatoryCost=Number(r.mandatoryCost)||0;
+ const afterMandatory=Math.max(0,available-mandatoryCost);
+ const rentReserve=Math.min(rent,afterMandatory);
+ const afterRent=Math.max(0,afterMandatory-rentReserve);
+ const safeDebtPayment=debt>0?Math.min(debt,Math.max(0,afterRent)):0;
+ const afterDebt=Math.max(0,afterRent-safeDebtPayment);
+ const top=salesItems[0];
+ if(top){
+  const sold=Number(top.sold)||0;
+  const stock=Number(top.stock)||0;
+  const extra=sold>=5?Math.min(2,Math.max(1,Math.ceil(sold*0.2))):0;
+  if(sold<=2){
+   notes.push(`Movimiento bajo: ${esc(top.name)} talla ${esc(top.size)} vendió ${sold} pieza${sold===1?'':'s'}. Conviene reponer esas ${sold} pieza${sold===1?'':'s'} sin agregar crecimiento todavía.`);
+  }else if(extra>0){
+   notes.push(`Buen movimiento: ${esc(top.name)} talla ${esc(top.size)} vendió ${sold} piezas. Primero repón las ${sold}; además puedes considerar ${extra} pieza${extra===1?'':'s'} extra${stock>0?' de esta talla':''} como crecimiento.`);
+  }else{
+   notes.push(`${esc(top.name)} talla ${esc(top.size)} fue de las más movidas con ${sold} piezas vendidas. Conviene asegurar primero la reposición de las ${sold} piezas.`);
+  }
+ }else{
+  notes.push('Todavía no hay ventas suficientes registradas para recomendar crecimiento por producto o talla.');
+ }
+ if(r.demand && r.demand.length){
+  const topDemand=r.demand.slice().sort((a,b)=>Number(b.count||0)-Number(a.count||0))[0];
+  if(topDemand)notes.push(`Demanda registrada: ${esc(topDemand.name)} tiene ${Number(topDemand.count||0)} solicitud${Number(topDemand.count||0)===1?'':'es'}. Conviene observar esa oportunidad y relacionarla con las tallas solicitadas antes de aumentar inventario.`);
+ }
+ if(mandatoryCost>0){
+  notes.push(`La reposición calculada requiere aproximadamente ${money(mandatoryCost)} a costo. Ese dinero debe considerarse antes de destinar efectivo a crecimiento.`);
+ }
+ if(debt>0){
+  if(safeDebtPayment>0)notes.push(`Tienes ${money(debt)} en pagos pendientes. Después de considerar la reposición y reservar dinero para el arriendo, podrías considerar un abono de hasta ${money(safeDebtPayment)}, dejando aproximadamente ${money(debt-safeDebtPayment)} de deuda, sin comprometer el efectivo disponible calculado.`);
+  else notes.push(`Tienes ${money(debt)} en pagos pendientes. Por ahora conviene no comprometer dinero adicional en un abono si eso reduce el efectivo necesario para la reposición y el arriendo.`);
+ }else{
+  notes.push('No hay pagos pendientes registrados. Puedes mantener el efectivo reservado para operación, arriendo y reposición antes de aumentar inventario.');
+ }
+ if(available<rent){
+  notes.push(`El arriendo considerado es de ${money(rent)} y faltan ${daysToRent} día${daysToRent===1?'':'s'} para el próximo día 21. Actualmente hay ${money(available)} disponibles, por lo que no conviene comprometer todo el efectivo en crecimiento.`);
+ }else{
+  notes.push(`El arriendo considerado es de ${money(rent)} y faltan ${daysToRent} día${daysToRent===1?'':'s'} para el próximo día 21. Después de contemplar la reposición (${money(mandatoryCost)}), se pueden reservar hasta ${money(rentReserve)} para el arriendo y queda aproximadamente ${money(afterRent)} antes de considerar otros gastos o deuda.`);
+ }
+ if(afterDebt>0 && mandatoryCost===0){
+  notes.push(`Después de las reservas calculadas, quedan aproximadamente ${money(afterDebt)} disponibles. Si los demás gastos están cubiertos, puedes evaluar una compra de crecimiento pequeña y basada en las tallas con mayor movimiento.`);
+ }
+ e.innerHTML=`<div class="analysis-note"><strong>NOTAS Y CONSEJOS DE CRECIMIENTO</strong></div>${notes.map(n=>`<div class="analysis-note" style="margin-top:8px">💡 ${n}</div>`).join('')}`;
  renderCycleHistory();
 }
-
 function ensurePendingDebts(){
  if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
  // Migración de una deuda antigua única a movimientos individuales.
@@ -3390,9 +3448,13 @@ function salesAnalysis(){
 }
 
 function generateImmediateReport(){
- const r=growthPurchaseAnalysis();
- r.cycleNumber=Number(state.growthCycle.cycle)||1;
- const report=document.createElement("div");report.id="immediateReportWindow";report.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeImmediateReport()"><div style="max-width:760px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">REPORTE INMEDIATO</div><div style="font-size:11px;color:#bbb;margin-top:3px">Mismo reporte del ciclo, generado ahora sin cerrarlo</div></div><button onclick="closeImmediateReport()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div style="padding:18px">${cycleReportHTML(r,"REPORTE DE REPOSICIÓN Y DEMANDA")}</div></div></div>`;document.body.appendChild(report);
+ try{
+  const r=growthPurchaseAnalysis();
+  r.cycleNumber=Number(state.growthCycle.cycle)||1;
+  const target=document.getElementById("immediateReport");
+  if(target){target.innerHTML=cycleReportHTML(r,"REPORTE INMEDIATO");target.scrollIntoView({behavior:"smooth",block:"start"});return;}
+  const report=document.createElement("div");report.id="immediateReportWindow";report.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeImmediateReport()"><div style="max-width:760px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">REPORTE INMEDIATO</div><div style="font-size:11px;color:#bbb;margin-top:3px">Generado ahora sin cerrar el ciclo</div></div><button onclick="closeImmediateReport()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div style="padding:18px">${cycleReportHTML(r,"REPORTE INMEDIATO")}${cycleObservationsHTML(r)}</div></div></div>`;document.body.appendChild(report);
+ }catch(err){console.error(err);alert("No se pudo generar el reporte inmediato. Revisa los datos del ciclo e inténtalo nuevamente.");}
 }
 
 function closeImmediateReport(){
