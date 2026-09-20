@@ -3268,10 +3268,22 @@ function demandReminderHTML(demand){
  const list=(demand||[]).slice(0,12);
  return `<div class="analysis-note" style="margin-top:8px"><strong>Demandas y oportunidades</strong><br><small>Recordatorios comerciales. No son obligaciones de compra y no afectan la reposición.</small>${list.length?`<div style="margin-top:8px">${list.map(d=>`<div style="margin-top:6px">• ${esc(d.name)}${d.size&&d.size!=="Todas"?` ${esc(d.size)}`:""} — solicitado por cliente</div>`).join("")}</div>`:'<div style="margin-top:7px">No hay demandas registradas.</div>'}</div>`;
 }
+function normalizeReportSize(size){
+ const s=String(size||"").trim().toUpperCase().replace(/\s+/g,"");
+ if(s==="XXL")return"2XL";
+ if(s==="XXXL")return"3XL";
+ if(s==="XXXXL")return"4XL";
+ return s;
+}
 function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
  const onlyPending=!!options.onlyPending,includeObservations=options.includeObservations!==false,sizes=SIZES;
  const groups=r.groupedItems.length?r.groupedItems.map(g=>{
-  const sizeCells=sizes.map(sz=>{const x=(g.items||[]).find(i=>i.size===sz);return `<div style="text-align:center;min-width:38px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${x?Number(x.recommended||0):0}</div></div>`;}).join("");
+  const sizeCells=sizes.map(sz=>{
+   const matches=(g.items||[]).filter(i=>normalizeReportSize(i.size)===normalizeReportSize(sz));
+   const sold=matches.reduce((a,i)=>a+Number(i.sold||0),0);
+   const recommended=matches.reduce((a,i)=>a+Number(i.recommended||0),0);
+   return `<div style="text-align:center;min-width:42px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${recommended}</div><div style="font-size:10px;color:#777">vendidas ${sold}</div></div>`;
+  }).join("");
   const total=(g.items||[]).reduce((a,x)=>a+Number(x.recommended||0),0),sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0),ordered=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyOrdered||0),0),received=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyReceived||0),0);
   return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Ventas acumuladas: ${sold} · Recibidas: ${received} · Ya pedidas: ${ordered}</div></div>`;
  }).join(""):`<div class="analysis-note">${onlyPending?"No hay piezas pendientes por pedir.":"No hay ventas registradas para reposición."}</div>`;
