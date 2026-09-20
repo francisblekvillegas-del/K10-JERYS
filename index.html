@@ -407,7 +407,7 @@ header{padding:20px 18px 10px}
 .priority-dot{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;white-space:nowrap}.priority-dot.red{background:#ffe1e1;color:#b42318}.priority-dot.orange{background:#fff0df;color:#b45309}.priority-dot.yellow{background:#fff7cc;color:#8a5a00}.priority-dot.green{background:#e8f7ec;color:#187a3d}.cycle-alert.red{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite}.cycle-alert.orange{background:#fff0df;color:#b45309}.cycle-alert.yellow{background:#fff7cc;color:#8a5a00}.cycle-alert.green{background:#e8f7ec;color:#187a3d}
 .home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-indicator{display:inline-flex;width:12px;height:12px;border-radius:50%;vertical-align:-1px;border:0;box-shadow:none}.cycle-indicator.cycle-phase-red{background:#d92d20 !important}.cycle-indicator.cycle-phase-yellow{background:#eab308 !important}.cycle-indicator.cycle-phase-orange{background:#f97316 !important}.cycle-indicator.cycle-phase-green{background:#16a34a !important}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
 @keyframes k10Pulse{0%,100%{opacity:1}50%{opacity:.55}}
-.login-transition{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:#000;opacity:0;transition:opacity .12s ease}.login-transition.show{display:flex;opacity:1}.login-transition img{width:min(72vw,420px);height:min(72vh,420px);object-fit:contain;border-radius:18px;animation:k10LoginLogo 1s ease-in-out both}.login-transition .login-transition-logo{font-size:16px;font-weight:900;letter-spacing:1.2px;color:#fff;margin-top:12px;text-align:center}.login-transition-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%}@keyframes k10LoginLogo{0%{transform:scale(.82);opacity:.15}35%{transform:scale(1.06);opacity:1}55%{transform:scale(.98);opacity:.82}75%{transform:scale(1.03);opacity:1}100%{transform:scale(1);opacity:1}}
+.login-transition{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:#000;opacity:0;transition:opacity .18s ease}.login-transition.show{display:flex;opacity:1}.login-transition-inner{display:flex;align-items:center;justify-content:center;width:100%;height:100%;transform:translateY(8%)}.login-transition img{width:min(52vw,310px);height:min(52vh,310px);object-fit:contain;border-radius:18px;animation:k10LoginLogo 1s ease-in-out both}@keyframes k10LoginLogo{0%{transform:scale(.78);opacity:.08}25%{transform:scale(1.04);opacity:1}45%{transform:scale(.94);opacity:.72}65%{transform:scale(1.02);opacity:1}82%{transform:scale(.98);opacity:.86}100%{transform:scale(1);opacity:1}}
 </style>
 
 </head>
@@ -455,7 +455,7 @@ header{padding:20px 18px 10px}
 
 </div>
 
-<div id="loginTransition" class="login-transition" aria-hidden="true"><div class="login-transition-inner"><img id="loginTransitionLogo" alt="K10 CONTROL logo"><div class="login-transition-logo">K10 CONTROL</div></div></div>
+<div id="loginTransition" class="login-transition" aria-hidden="true"><div class="login-transition-inner"><img id="loginTransitionLogo" alt="K10 CONTROL logo"></div></div>
 
 <!-- CONFIGURACIÓN INICIAL -->
 
@@ -3070,7 +3070,7 @@ function statisticsData(){
 }
 function renderStatistics(){
  const e=document.getElementById("statisticsContent");if(!e)return;const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
- const ph=cyclePhase(r.elapsed,r.c.pieces); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${r.c.pieces} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
+ const ph=cyclePhase(r.elapsed,r.c.pieces); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO",{salesOnly:true,includeObservations:false}):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${r.c.pieces} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
  const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed,r.c.pieces).cls} cycle-blink"></span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
@@ -3199,8 +3199,33 @@ function normalizeReportSize(size){
  if(s==="XXXXL")return"4XL";
  return s;
 }
-function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
- const onlyPending=!!options.onlyPending,includeObservations=options.includeObservations!==false,sizes=SIZES;
+function cycleReportHTML(r, title="REPORTE DEL CICLO", options={}){
+ const onlyPending=!!options.onlyPending;
+ const includeObservations=options.includeObservations!==false;
+ const salesOnly=options.salesOnly!==false && !onlyPending;
+ if(salesOnly){
+  const sales=Array.isArray(r?.c?.sales)?r.c.sales:[];
+  const grouped={};
+  sales.forEach(m=>{
+   const name=String(m.productName||m.name||m.team||"Sin equipo").trim()||"Sin equipo";
+   const size=normalizeReportSize(m.size||"Sin talla")||"Sin talla";
+   const qty=Math.max(0,Number(m.quantity||m.pieces||0));
+   if(!qty)return;
+   const key=name.toLowerCase();
+   if(!grouped[key])grouped[key]={name, sizes:{}, total:0};
+   grouped[key].sizes[size]=(grouped[key].sizes[size]||0)+qty;
+   grouped[key].total+=qty;
+  });
+  const teams=Object.values(grouped).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name));
+  const groups=teams.length?teams.map(g=>{
+   const sizeOrder=SIZES.concat(["Sin talla"]);
+   const sizeText=sizeOrder.filter(sz=>g.sizes[sz]).map(sz=>`${esc(sz)}: <strong>${g.sizes[sz]}</strong>`).join(' · ');
+   return `<div class="card" style="margin:8px 0;padding:12px 14px"><div style="font-weight:900;font-size:15px">${esc(g.name)}</div><div style="margin-top:7px;font-size:13px;color:#555">${sizeText}</div><div style="margin-top:7px;font-size:13px"><strong>Total vendido: ${g.total}</strong></div></div>`;
+  }).join(""): '<div class="analysis-note">No hubo ventas registradas en este ciclo.</div>';
+  const total=teams.reduce((a,g)=>a+g.total,0);
+  return `<div class="analysis-note" style="margin-top:0"><strong>${esc(title)}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${total} piezas vendidas en este ciclo</strong></div><div class="analysis-note"><strong>PIEZAS VENDIDAS POR EQUIPO Y TALLA</strong><br>Ordenado de mayor a menor según las ventas reales del ciclo.</div><div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>TOTAL VENDIDO DEL CICLO: ${total} PIEZAS</strong></div>`;
+ }
+ const sizes=SIZES;
  const groups=r.groupedItems.length?r.groupedItems.map(g=>{
   const sizeCells=sizes.map(sz=>{
    const matches=(g.items||[]).filter(i=>normalizeReportSize(i.size)===normalizeReportSize(sz));
@@ -3210,183 +3235,34 @@ function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
   }).join("");
   const total=(g.items||[]).reduce((a,x)=>a+Number(x.recommended||0),0),sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0),ordered=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyOrdered||0),0),received=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyReceived||0),0);
   return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Ventas acumuladas: ${sold} · Recibidas: ${received} · Ya pedidas: ${ordered}</div></div>`;
- }).join(""):`<div class="analysis-note">${onlyPending?"No hay piezas pendientes por pedir.":"No hay ventas registradas para reposición."}</div>`;
- return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas en este ciclo</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total pendiente de reposición:</strong> ${r.totalReplenishment} piezas</div>${demandReminderHTML(r.demand)}${includeObservations?cycleObservationsHTML(r):""}`;
+ }).join(""):`<div class="analysis-note">No hay piezas pendientes por pedir.</div>`;
+ return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas en este ciclo</strong></div><div style="margin-top:8px">${groups}</div>`;
 }
 function renderCycleHistory(){
  const e=document.getElementById("cycleHistoryReport");if(!e)return;
  const history=cycleHistory().slice().reverse();
  e.innerHTML=history.length?history.map(h=>{
-  const groups=(h.groupedItems||[]).map(g=>{
-   const soldItems=(g.items||[]).filter(x=>Number(x.sold||0)>0);
-   const soldTotal=soldItems.reduce((a,x)=>a+Number(x.sold||0),0);
-   if(!soldTotal)return "";
-   const soldSizes=soldItems.map(x=>`${esc(normalizeReportSize(x.size))}: <strong>${Number(x.sold||0)}</strong>`).join(' · ');
-   return `<div class="card" style="margin:8px 0;padding:12px 14px"><strong>${esc(g.name)}</strong><div style="margin-top:6px;font-size:12px;color:#555">${soldSizes?`<span>${soldSizes}</span><br>`:''}<strong>Total vendido: ${soldTotal}</strong></div></div>`;
-  }).filter(Boolean).join("");
-  const displayedTotal=(h.groupedItems||[]).reduce((total,g)=>total+(g.items||[]).reduce((a,x)=>a+Math.max(0,Number(x.sold||0)),0),0);
-  return `<details class="report-card collapsible" style="margin-top:10px"><summary><span>📋 CICLO ${h.cycle} — ${esc(h.trigger)}</span><span class="summary-right">${displayedTotal} piezas</span></summary><div class="collapse-body"><div class="analysis-note">${fmtDate(h.start)} al ${fmtDate(h.end)}<br><strong>${displayedTotal} piezas vendidas en este ciclo</strong></div><div class="analysis-note"><strong>PIEZAS VENDIDAS POR EQUIPO Y TALLA</strong><br>Solo se muestran las piezas que realmente aparecen como ventas en este ciclo.</div>${groups||'<div class="analysis-note">No hubo ventas registradas en este ciclo.</div>'}<div class="analysis-note"><strong>TOTAL VENDIDO DEL CICLO: ${displayedTotal} PIEZAS</strong></div></div></details>`;
+  const sales=salesBetween(h.start,h.end);
+  const grouped={};
+  sales.forEach(m=>{
+   const name=String(m.productName||m.name||m.team||"Sin equipo").trim()||"Sin equipo";
+   const size=normalizeReportSize(m.size||"Sin talla")||"Sin talla";
+   const qty=Math.max(0,Number(m.quantity||m.pieces||0));
+   if(!qty)return;
+   const key=name.toLowerCase();
+   if(!grouped[key])grouped[key]={name,sizes:{},total:0};
+   grouped[key].sizes[size]=(grouped[key].sizes[size]||0)+qty;
+   grouped[key].total+=qty;
+  });
+  const teams=Object.values(grouped).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name));
+  const displayedTotal=teams.reduce((a,g)=>a+g.total,0);
+  const groups=teams.map(g=>{
+   const sizeText=SIZES.concat(["Sin talla"]).filter(sz=>g.sizes[sz]).map(sz=>`${esc(sz)}: <strong>${g.sizes[sz]}</strong>`).join(' · ');
+   return `<div class="card" style="margin:8px 0;padding:12px 14px"><strong>${esc(g.name)}</strong><div style="margin-top:6px;font-size:12px;color:#555">${sizeText}</div><div style="margin-top:6px"><strong>Total vendido: ${g.total}</strong></div></div>`;
+  }).join("");
+  return `<details class="report-card collapsible" style="margin-top:10px"><summary><span>📋 CICLO ${h.cycle} — ${esc(h.trigger)}</span><span class="summary-right">${displayedTotal} piezas</span></summary><div class="collapse-body"><div class="analysis-note">${fmtDate(h.start)} al ${fmtDate(h.end)}<br><strong>${displayedTotal} piezas vendidas en este ciclo</strong></div><div class="analysis-note"><strong>PIEZAS VENDIDAS POR EQUIPO Y TALLA</strong><br>Solo se muestran las ventas reales del ciclo, ordenadas de mayor a menor.</div>${groups||'<div class="analysis-note">No hubo ventas registradas en este ciclo.</div>'}<div class="analysis-note"><strong>TOTAL VENDIDO DEL CICLO: ${displayedTotal} PIEZAS</strong></div></div></details>`;
  }).join(""):'<div class="analysis-note">Todavía no hay ciclos cerrados.</div>';
 }
-
-function growthSalesLineChart(r){
- const start=r.c.start,end=r.c.end;
- const days=Math.max(1,daysBetweenKeys(start,end)+1);
- const values=[];
- for(let i=0;i<days;i++){
-  const date=addDaysKey(start,i);
-  const total=(r.c.sales||[]).filter(m=>m.date===date).reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
-  values.push(total);
- }
- const w=620,h=220,padL=38,padR=18,padT=18,padB=34;
- const max=Math.max(1,...values),innerW=w-padL-padR,innerH=h-padT-padB;
- const points=values.map((v,i)=>{
-  const x=days===1?padL+innerW/2:padL+(i/(days-1))*innerW;
-  const y=padT+innerH-(v/max)*innerH;
-  return{x,y,v};
- });
- const poly=points.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
- const labels=points.map((p,i)=>{
-  if(days>10&&i%2!==0&&i!==days-1)return "";
-  return `<text x="${p.x.toFixed(1)}" y="${h-10}" text-anchor="middle" font-size="9" fill="#777">${i+1}</text>`;
- }).join("");
- const dots=points.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="#1769aa"><title>${p.v} piezas</title></circle>`).join("");
- const grid=[0,.5,1].map(t=>{const y=padT+innerH-(t*innerH);const val=Math.round(max*t);return `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="#e7e7e7" stroke-width="1"/><text x="${padL-7}" y="${y+3}" text-anchor="end" font-size="9" fill="#777">${val}</text>`;}).join("");
- return `<div class="card" style="margin:0;padding:10px;overflow:hidden"><svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="Ventas diarias del ciclo" style="display:block"><g>${grid}</g><polyline points="${poly}" fill="none" stroke="#1769aa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>${dots}${labels}</svg></div>`;
-}
-function growthSuggestedItems(r){
- return (r.items||[]).filter(x=>Number(x.sold||0)>0).map(x=>{
-  const sold=Number(x.sold)||0;
-  const pending=Number(x.alreadyOrdered)||0;
-  const baseGrowth=sold>=5?Math.min(2,Math.max(1,Math.ceil(sold*0.2))):0;
-  const uncoveredGrowth=Math.max(0,baseGrowth-Math.max(0,pending-sold));
-  return {...x,suggestedGrowth:uncoveredGrowth};
- }).filter(x=>x.suggestedGrowth>0).sort((a,b)=>b.suggestedGrowth-a.suggestedGrowth||b.sold-a.sold||a.name.localeCompare(b.name));
-}
-function renderGrowthReport(){
- const e=document.getElementById("smartReport");if(!e)return;
- ensureGrowthData();
- const r=growthPurchaseAnalysis();
- const suggestions=growthSuggestedItems(r);
- const suggestionHTML=suggestions.length?suggestions.map(x=>`<div class="report-line"><span>${esc(x.name)} — ${esc(x.size)}</span><strong>+${x.suggestedGrowth}</strong></div>`).join(""):'<div class="analysis-note">Sin crecimiento sugerido.</div>';
- e.innerHTML=`${growthSalesLineChart(r)}<div style="margin-top:14px;font-weight:900">Crecimiento sugerido</div><div style="margin-top:4px">${suggestionHTML}</div>`;
- renderCycleHistory();
-}
-
-function ensurePendingDebts(){
- if(!Array.isArray(state.pendingDebts)) state.pendingDebts=[];
- // Migración de una deuda antigua única a movimientos individuales.
- if(state.pendingDebts.length===0 && Number(state.initialDebt)>0){
-  state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:Number(state.initialDebt),remaining:Number(state.initialDebt),status:"pending",note:"Pago pendiente inicial"});
- }
-}
-function currentDebt(){
- ensurePendingDebts();
- return state.pendingDebts.reduce((a,d)=>a+Math.max(0,Number(d.remaining)||0),0);
-}
-function openDebtPanel(){
- if(!assertDayOpen())return;
- ensurePendingDebts();
- const existing=document.getElementById("debtPanelWindow"); if(existing)existing.remove();
- const panel=document.createElement("div"); panel.id="debtPanelWindow";
- panel.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeDebtPanel()"><div style="max-width:620px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">PAGOS PENDIENTES</div><div style="font-size:11px;color:#bbb;margin-top:3px">Cada deuda se administra por separado</div></div><button onclick="closeDebtPanel()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div id="debtPanelBody" style="padding:16px"></div></div></div>`;
- document.body.appendChild(panel); renderDebtPanel();
-}
-function closeDebtPanel(){const e=document.getElementById("debtPanelWindow");if(e)e.remove();}
-function renderDebtPanel(){
- const e=document.getElementById("debtPanelBody"); if(!e)return;
- ensurePendingDebts();
- const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
- const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
- const w=workerPeriodData(),workerPaid=paidWorker(),workerAmount=workerPendingAmount(),todayIsSunday=new Date(today()+"T12:00:00").getDay()===0,canPayWorker=todayIsSunday&&!workerPaid&&today()===w.end;
- const workerCard=`<div class="card" style="margin:0 0 14px;padding:14px;border:2px solid #111"><div style="font-size:11px;color:#777;font-weight:900">PAGO DEL TRABAJADOR</div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:5px"><div><strong style="font-size:22px">${money(workerAmount||w.total)}</strong><div style="font-size:11px;color:#777;margin-top:3px">Base $1,300 + $10 por pieza · Miércoles a domingo</div><div style="font-size:11px;color:#777">Periodo: ${fmtDate(w.start)} al ${fmtDate(w.end)} · ${w.pieces} piezas</div></div><button class="btn green" ${canPayWorker?'':'disabled'} style="opacity:${canPayWorker?'1':'.5'}" onclick="payWorker()">${workerPaid?'TRABAJADOR PAGADO':(canPayWorker?'PAGAR / LIBERAR TRABAJADOR':'PAGO DISPONIBLE EL DOMINGO')}</button></div></div>`;
- const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
- e.innerHTML=`${workerCard}<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
-}
-function openDebtPayment(id){
- if(!assertDayOpen())return;
- ensurePendingDebts();
- const d=state.pendingDebts.find(x=>x.id===id);
- if(!d || Number(d.remaining)<=0)return;
- const pending=Number(d.remaining)||0;
- const raw=prompt(`Pago pendiente: ${money(pending)}\n\n¿CUÁNTO VAS A ABONAR?`,String(pending));
- if(raw===null)return;
- const amount=Number(raw);
- if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
- if(amount>pending)return alert(`El abono no puede ser mayor al pendiente (${money(pending)}).`);
- d.remaining=Math.max(0,pending-amount);
- if(d.remaining===0)d.status="paid";
- day().movements.push({id:crypto.randomUUID(),type:"debtPayment",concept:`Abono a pago pendiente${d.note?' — '+d.note:''}`,amount,timestamp:Date.now(),time:timeNow(),debtId:d.id});
- state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- state.debtPayments.push({id:crypto.randomUUID(),date:today(),amount,timestamp:Date.now(),debtId:d.id});
- save(); render(); renderDebtPanel(); alert(d.remaining===0?`Pago completado: ${money(amount)}.\nQuedó pagado completo.`:`Abono registrado: ${money(amount)}\nRestante: ${money(d.remaining)}`);
-}
-function openNewDebt(){
- if(!assertDayOpen())return;
- const raw=prompt("¿CUÁNTO ES EL NUEVO PAGO PENDIENTE?","0");
- if(raw===null)return;
- const amount=Number(raw);
- if(!Number.isFinite(amount)||amount<=0)return alert("Coloca un monto válido.");
- ensurePendingDebts();
- const note=prompt("Descripción del pago (opcional):", "Deuda de pedido");
- state.pendingDebts.push({id:crypto.randomUUID(),createdAt:Date.now(),date:today(),originalAmount:amount,remaining:amount,status:"pending",note:(note||'').trim()});
- state.initialDebt=Number(state.initialDebt)||0;
- state.debtPayments=Array.isArray(state.debtPayments)?state.debtPayments:[];
- save(); render(); const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel(); alert(`Nuevo pago pendiente registrado: ${money(amount)}`);
-}
-function renderDebt(){
- const e=document.getElementById("debtCard"); if(!e)return;
- ensurePendingDebts();
- const pending=currentDebt();
- e.innerHTML=`<div onclick="openDebtPanel()" style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">Toca para ver los pagos pendientes</div></div><span style="font-size:12px;font-weight:900;color:#111">›</span></div>`;
-}
-
-/* =========================
-
-   ANÁLISIS INTELIGENTE
-
-========================= */
-
-function salesAnalysis(){
- const data={};
- const startDate=state.startDate||today();
- Object.values(state.days).forEach(d=>{
-  if(d.date<startDate||d.date>today())return;
-  d.movements.forEach(m=>{
-   if(m.type==="sale"&&m.productId){
-    if(!data[m.productId])data[m.productId]={id:m.productId,name:m.productName,sold:0,sizes:{}};
-    data[m.productId].sold+=Number(m.quantity||0);
-    data[m.productId].sizes[m.size]=(data[m.productId].sizes[m.size]||0)+Number(m.quantity||0);
-   }
-  });
- });
- return Object.values(data).map(x=>{
-  const replenishBySize={};SIZES.forEach(sz=>{if((x.sizes[sz]||0)>0)replenishBySize[sz]=x.sizes[sz];});
-  return {...x,stock:state.products.find(p=>p.id===x.id)?SIZES.reduce((a,sz)=>a+(state.products.find(p=>p.id===x.id).stock[sz]||0),0):0,replenish:x.sold,replenishBySize,product:state.products.find(p=>p.id===x.id)};
- }).sort((a,b)=>b.sold-a.sold);
-}
-
-function generateImmediateReport(){
- try{
-  const r=growthPurchaseAnalysis();
-  r.cycleNumber=Number(state.growthCycle.cycle)||1;
-  r.items=(r.items||[]).filter(x=>Number(x.recommended||0)>0);
-  const grouped={};r.items.forEach(x=>{const k=x.productId||("new:"+x.name.toLowerCase());if(!grouped[k])grouped[k]={name:x.name,items:[]};grouped[k].items.push(x);});
-  r.groupedItems=Object.values(grouped);
-  r.totalRecommended=r.items.reduce((a,x)=>a+Number(x.recommended||0),0);
-  r.totalReplenishment=r.items.reduce((a,x)=>a+Number(x.replenish||0),0);
-  r.totalDemand=r.items.reduce((a,x)=>a+Number(x.demandPurchase||0),0);
-  const target=document.getElementById("immediateReport");
-  if(target){target.innerHTML=cycleReportHTML(r,"REPORTE INMEDIATO",{onlyPending:true,includeObservations:false});target.scrollIntoView({behavior:"smooth",block:"start"});return;}
-  const report=document.createElement("div");report.id="immediateReportWindow";report.innerHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;padding:12px;overflow:auto" onclick="if(event.target===this)closeImmediateReport()"><div style="max-width:760px;margin:0 auto;background:#fff;border-radius:18px;min-height:calc(100vh - 24px);overflow:hidden"><div style="position:sticky;top:0;z-index:2;background:#111;color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:900">REPORTE INMEDIATO</div><div style="font-size:11px;color:#bbb;margin-top:3px">Generado ahora sin cerrar el ciclo</div></div><button onclick="closeImmediateReport()" style="border:0;background:#fff;color:#111;border-radius:10px;padding:9px 12px;font-weight:900">✕</button></div><div style="padding:18px">${cycleReportHTML(r,"REPORTE INMEDIATO",{onlyPending:true,includeObservations:false})}</div></div></div>`;document.body.appendChild(report);
- }catch(err){console.error(err);alert("No se pudo generar el reporte inmediato. Revisa los datos del ciclo e inténtalo nuevamente.");}
-}
-
-function closeImmediateReport(){
- const report=document.getElementById("immediateReportWindow");
- if(report)report.remove();
-}
-
 function renderReports(){
  renderGrowthReport();renderMarketDemandReport();renderStatistics();
  const pending=state.orders.filter(o=>!o.received).reduce((a,o)=>a+Number(o.pieces||0),0);
