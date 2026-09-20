@@ -1686,6 +1686,9 @@ function saveProduct(){
  }
 
  state.products.push(p);
+ state.growthCycle=state.growthCycle||{};
+ state.growthCycle.productTrackingStart=state.growthCycle.productTrackingStart||{};
+ state.growthCycle.productTrackingStart[p.id]=setupMode?(state.growthCycle.startDate||state.startDate||today()):today();
  if(!setupMode){ state.registeredPieces=(Number(state.registeredPieces)||0)+Object.values(stock).reduce((a,v)=>a+(Number(v)||0),0); }
 
  save();
@@ -2762,6 +2765,9 @@ function createOrder(){
   if(!item.productId){
    const newProduct={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,stock:{S:0,M:0,L:0,XL:0,"2XL":0,"3XL":0,"4XL":0}};
    state.products.push(newProduct); item.productId=newProduct.id;
+    state.growthCycle=state.growthCycle||{};
+    state.growthCycle.productTrackingStart=state.growthCycle.productTrackingStart||{};
+    state.growthCycle.productTrackingStart[newProduct.id]=today();
   }
  });
  const order={id:crypto.randomUUID(),number:state.orders.length+1,date:today(),status:"pending",productId:items.length===1?items[0].productId:null,productName:items.length===1?items[0].productName:`${items.length} equipos`,cost:items.length===1?items[0].cost:0,salePrice:items.length===1?items[0].salePrice:0,quantities:items.length===1?items[0].quantities:{},pieces:totalPieces,total,items,received:false};
@@ -3041,53 +3047,31 @@ function ensureGrowthData(){
  if(!state.growthCycle.cycle){state.growthCycle.cycle=1;changed=true;}
  if(!state.growthCycle.startDate){state.growthCycle.startDate=state.startDate||today();changed=true;}
  if(!Array.isArray(state.growthCycle.history)){state.growthCycle.history=[];changed=true;}
+ if(!state.growthCycle.productTrackingStart||typeof state.growthCycle.productTrackingStart!=="object"||Array.isArray(state.growthCycle.productTrackingStart)){state.growthCycle.productTrackingStart={};changed=true;}
  if(!Array.isArray(state.debtPayments)){state.debtPayments=[];changed=true;}
  if(state.initialDebt==null){state.initialDebt=0;changed=true;}
  const beforeDebts=Array.isArray(state.pendingDebts)?state.pendingDebts.length:0;
  ensurePendingDebts();
  if((state.pendingDebts||[]).length!==beforeDebts)changed=true;
+ const tracking=state.growthCycle.productTrackingStart;
+ const defaultStart=state.growthCycle.startDate||state.startDate||today();
+ (state.products||[]).forEach(p=>{if(!tracking[p.id]){tracking[p.id]=defaultStart;changed=true;}});
  if(changed)save();
 }
-
-function cycleHistory(){
+function cycleHistory(){ensureGrowthData();return state.growthCycle.history;}
+function closeCurrentCycle(trigger="CIERRE MANUAL"){
  ensureGrowthData();
- return state.growthCycle.history;
-}
-
-function finalizeCurrentCycleIfDue(){
- ensureGrowthData();
- const c=cycleSales();
- const elapsed=Math.max(0,daysBetweenKeys(c.start,c.end)+1);
- const due=c.pieces>=50 || elapsed>=14;
- if(!due)return false;
- const r=growthPurchaseAnalysis();
- const cycleNumber=Number(state.growthCycle.cycle)||1;
- const history=cycleHistory();
- const exists=history.some(x=>Number(x.cycle)===cycleNumber && x.end===c.end);
- if(!exists){
-  history.push({
-   cycle:cycleNumber,
-   start:c.start,
-   end:c.end,
-   closedAt:new Date().toISOString(),
-   trigger:c.pieces>=50?'50 VENTAS':'14 DÍAS',
-   pieces:c.pieces,
-   totalRecommended:r.totalRecommended,
-   totalReplenishment:r.totalReplenishment,
-   totalDemand:r.totalDemand,
-   pendingPieces:r.pendingPieces,
-   items:r.items.map(x=>({...x})),
-   groupedItems:r.groupedItems.map(g=>({name:g.name,items:g.items.map(x=>({...x}))}))
-  });
- }
- const nextStart=addDaysKey(c.end,1);
+ const c=cycleSales(),r=growthPurchaseAnalysis(),cycleNumber=Number(state.growthCycle.cycle)||1,history=cycleHistory();
+ if(history.some(x=>Number(x.cycle)===cycleNumber&&x.start===c.start)){alert("Este ciclo ya está cerrado.");return false;}
+ history.push({cycle:cycleNumber,start:c.start,end:c.end,closedAt:new Date().toISOString(),trigger,pieces:c.pieces,totalRecommended:r.totalRecommended,totalReplenishment:r.totalReplenishment,totalDemand:0,pendingPieces:r.pendingPieces,items:r.items.map(x=>({...x})),groupedItems:r.groupedItems.map(g=>({name:g.name,items:g.items.map(x=>({...x}))}))});
  state.growthCycle.cycle=cycleNumber+1;
- state.growthCycle.periodStartDate=nextStart;
+ state.growthCycle.periodStartDate=addDaysKey(c.end,1);
  state.growthCycle.lastClosedDate=c.end;
- save();
+ save();render();
+ alert(`Ciclo ${cycleNumber} cerrado correctamente.`);
  return true;
 }
-
+function finalizeCurrentCycleIfDue(){return false;}
 function cycleBaseDate(){
  ensureGrowthData();
  return state.startDate || state.growthCycle.startDate || today();
@@ -3154,7 +3138,7 @@ function statisticsData(){
  return{sales,teams:sorted(team),sizes:sorted(sizes),dates:sorted(dates),weekdays:sorted(weekdays),avg,profitability};
 }
 function renderStatistics(){
- const e=document.getElementById("statisticsContent");if(!e)return;finalizeCurrentCycleIfDue();const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
+ const e=document.getElementById("statisticsContent");if(!e)return;const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
  const ph=cyclePhase(r.elapsed); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${Math.min(50,r.c.pieces)} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
  const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
@@ -3189,66 +3173,69 @@ function pendingOrderQuantities(){
   const items=Array.isArray(o.items)&&o.items.length?o.items:[o];
   items.forEach(item=>{
    const productKey=String(item.productId||'NEW:'+String(item.productName||'').trim().toLowerCase());
-   SIZES.forEach(size=>{
-    const qty=Number(item.quantities?.[size]||0);
-    if(qty>0){const key=productKey+'|'+size;pending[key]=(pending[key]||0)+qty;}
-   });
+   SIZES.forEach(size=>{const qty=Number(item.quantities?.[size]||0);if(qty>0){const key=productKey+'|'+size;pending[key]=(pending[key]||0)+qty;}});
   });
  });
  return pending;
 }
+function growthTrackingStart(productId){
+ ensureGrowthData();
+ return state.growthCycle.productTrackingStart?.[productId]||state.growthCycle.startDate||state.startDate||today();
+}
+function receivedOrderQuantities(){
+ const received={};
+ (state.orders||[]).filter(o=>o.received).forEach(o=>{
+  const receivedDate=o.receivedDate||o.date||today();
+  const items=Array.isArray(o.items)&&o.items.length?o.items:[o];
+  items.forEach(item=>{
+   const productId=item.productId;if(!productId||receivedDate<growthTrackingStart(productId))return;
+   SIZES.forEach(size=>{const qty=Number(item.quantities?.[size]||0);if(qty>0){const key=String(productId)+'|'+size;received[key]=(received[key]||0)+qty;}});
+  });
+ });
+ return received;
+}
+function positiveInventoryAdjustments(){
+ const adjusted={};
+ Object.values(state.days||{}).forEach(d=>{
+  if(!d?.date)return;
+  (d.movements||[]).forEach(m=>{
+   if(m.type!=="inventory_adjustment"||Number(m.quantity||0)<=0||!m.productId||!m.size)return;
+   if(d.date<growthTrackingStart(m.productId))return;
+   const key=String(m.productId)+'|'+String(m.size);adjusted[key]=(adjusted[key]||0)+Number(m.quantity||0);
+  });
+ });
+ return adjusted;
+}
 function growthPurchaseAnalysis(){
  ensureGrowthData();
- const c=cycleSales(), pending=pendingOrderQuantities(), by={};
- c.sales.forEach(m=>{
+ const c=cycleSales(),pending=pendingOrderQuantities(),received=receivedOrderQuantities(),adjusted=positiveInventoryAdjustments(),by={};
+ const trackingStart=state.growthCycle.startDate||state.startDate||c.start;
+ salesBetween(trackingStart,c.end).forEach(m=>{
   const key=String(m.productId||"")+"|"+String(m.size||"");
   if(!by[key]){const p=state.products.find(x=>x.id===m.productId);by[key]={productId:m.productId,name:m.productName,size:m.size||"Sin talla",sold:0,unitCost:Number(m.unitCost)||Number(p?.cost)||0};}
   by[key].sold+=Number(m.quantity||m.pieces||0);
  });
- const demand=getDemandSummary();
- demand.forEach(d=>{
-  if(d.size==="Todas")return;
-  const p=state.products.find(x=>x.name.trim().toLowerCase()===d.name.trim().toLowerCase());
-  const productId=p?.id||("NEW:"+d.name.trim().toLowerCase());
-  const key=productId+"|"+d.size;
-  if(!by[key])by[key]={productId:p?.id||null,name:d.name,size:d.size,sold:0,unitCost:Number(p?.cost)||0};
-  by[key].demand=(by[key].demand||0)+d.count;
- });
- const elapsed=Math.max(0,daysBetweenKeys(c.start,c.end)+1);
  const items=Object.values(by).map(x=>{
-  const product=state.products.find(p=>p.id===x.productId);
-  const stock=Number(product?.stock?.[x.size])||0;
+  const product=state.products.find(p=>p.id===x.productId),stock=Number(product?.stock?.[x.size])||0;
   const productKey=x.productId?String(x.productId):"NEW:"+x.name.trim().toLowerCase();
   const alreadyOrdered=Number(pending[productKey+"|"+x.size]||0);
+  const alreadyReceived=Number(received[productKey+"|"+x.size]||0);
+  const manualCovered=Number(adjusted[productKey+"|"+x.size]||0);
   const salesNeed=Math.max(0,Number(x.sold)||0);
-  const demandNeed=Math.max(0,Number(x.demand)||0);
-  const replenish=Math.max(0,salesNeed-alreadyOrdered);
-  const demandPurchase=Math.max(0,demandNeed-Math.max(0,alreadyOrdered-salesNeed));
-  const recommended=replenish+demandPurchase;
-  const fast=salesNeed>=10;
-  return {...x,stock,alreadyOrdered,replenish,demand:demandNeed,demandPurchase,recommended,fast,priority:recommended>0?(salesNeed>0?'REPOSICIÓN':'DEMANDA'):'OBSERVAR',priorityClass:recommended>0?(salesNeed>0?'orange':'blue'):'green'};
- }).filter(x=>x.sold>0||x.demand>0);
- items.sort((a,b)=>b.recommended-a.recommended||b.sold-a.sold||b.demand-a.demand||a.name.localeCompare(b.name));
+  const replenish=Math.max(0,salesNeed-alreadyReceived-manualCovered-alreadyOrdered);
+  return {...x,stock,alreadyOrdered,alreadyReceived,manualCovered,replenish,demand:0,demandPurchase:0,recommended:replenish,fast:salesNeed>=10,priority:replenish>0?'REPOSICIÓN':'OBSERVAR',priorityClass:replenish>0?'orange':'green'};
+ }).filter(x=>x.replenish>0||x.sold>0);
+ items.sort((a,b)=>b.recommended-a.recommended||b.sold-a.sold||a.name.localeCompare(b.name));
  const mandatoryCost=items.reduce((a,x)=>a+x.replenish*Number(x.unitCost||0),0);
- const availableCash=Math.max(0,Number(cash())||0);
- const debt=currentDebt();
- const cashAfterDebt=Math.max(0,availableCash-debt);
- const growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
- const totalReplenishment=items.reduce((a,x)=>a+x.replenish,0);
- const totalDemand=items.reduce((a,x)=>a+x.demandPurchase,0);
- const totalRecommended=items.reduce((a,x)=>a+x.recommended,0);
- const salesReached50=c.pieces>=50;
- const daysReached14=elapsed>=14;
- const due=salesReached50||daysReached14;
- const overallPriority=due?'🟠 REVISAR PEDIDO':'🟢 CICLO EN CURSO';
- const overallClass=due?'orange':'green';
+ const availableCash=Math.max(0,Number(cash())||0),debt=currentDebt(),cashAfterDebt=Math.max(0,availableCash-debt),growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
+ const totalReplenishment=items.reduce((a,x)=>a+x.replenish,0),totalRecommended=totalReplenishment,totalDemand=0;
+ const salesReached50=c.pieces>=50,elapsed=Math.max(0,daysBetweenKeys(c.start,c.end)+1),daysReached14=elapsed>=14,due=salesReached50||daysReached14;
+ const overallPriority=due?'🟠 REVISAR PEDIDO':'🟢 CICLO EN CURSO',overallClass=due?'orange':'green';
  const grouped={};items.forEach(x=>{const k=x.productId||('new:'+x.name.toLowerCase());if(!grouped[k])grouped[k]={name:x.name,items:[]};grouped[k].items.push(x);});
- const groupedItems=Object.values(grouped);
- const inv=currentInventoryAnalysis();
+ const groupedItems=Object.values(grouped),inv=currentInventoryAnalysis();
  let growthTarget=400;if(inv.pieces>=400)growthTarget=Math.ceil(inv.pieces/50)*50+50;
- const pendingOrders=(state.orders||[]).filter(o=>!o.received);
- const pendingPieces=pendingOrders.reduce((a,o)=>a+Number(o.pieces||0),0);
- return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand,mandatoryCost,availableCash,debt,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
+ const pendingOrders=(state.orders||[]).filter(o=>!o.received),pendingPieces=pendingOrders.reduce((a,o)=>a+Number(o.pieces||0),0);
+ return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand:getDemandSummary(),mandatoryCost,availableCash,debt,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
 }
 
 function cycleObservationsHTML(r){
@@ -3270,23 +3257,19 @@ function cycleObservationsHTML(r){
  return `<div class="analysis-note"><strong>OBSERVACIONES</strong>${notes.map(n=>`<div style="margin-top:7px">• ${n}</div>`).join('')}</div>`;
 }
 
-function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
- const onlyPending=!!options.onlyPending;
- const includeObservations=options.includeObservations!==false;
- const sizes=SIZES;
- const groups=r.groupedItems.length?r.groupedItems.map(g=>{
-  const sizeCells=sizes.map(sz=>{
-   const x=(g.items||[]).find(i=>i.size===sz);
-   return `<div style="text-align:center;min-width:38px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${x?Number(x.recommended||0):0}</div></div>`;
-  }).join("");
-  const total=(g.items||[]).reduce((a,x)=>a+Number(x.recommended||0),0);
-  const sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0);
-  const demand=(g.items||[]).reduce((a,x)=>a+Number(x.demandPurchase||0),0);
-  return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Vendidas: ${sold} · Demanda adicional: ${demand}</div></div>`;
- }).join(""):`<div class="analysis-note">${onlyPending?"No hay piezas pendientes por pedir.":"No hay ventas ni demanda registrada en este ciclo."}</div>`;
- return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total por reponer:</strong> ${r.totalReplenishment} piezas · <strong>Demanda adicional:</strong> ${r.totalDemand} · <strong>Total recomendado ahora:</strong> ${r.totalRecommended}</div>${includeObservations?cycleObservationsHTML(r):""}${""}`;
+function demandReminderHTML(demand){
+ const list=(demand||[]).slice(0,12);
+ return `<div class="analysis-note" style="margin-top:8px"><strong>Demandas y oportunidades</strong><br><small>Recordatorios comerciales. No son obligaciones de compra y no afectan la reposición.</small>${list.length?`<div style="margin-top:8px">${list.map(d=>`<div style="margin-top:6px">• ${esc(d.name)}${d.size&&d.size!=="Todas"?` ${esc(d.size)}`:""} — solicitado por cliente</div>`).join("")}</div>`:'<div style="margin-top:7px">No hay demandas registradas.</div>'}</div>`;
 }
-
+function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
+ const onlyPending=!!options.onlyPending,includeObservations=options.includeObservations!==false,sizes=SIZES;
+ const groups=r.groupedItems.length?r.groupedItems.map(g=>{
+  const sizeCells=sizes.map(sz=>{const x=(g.items||[]).find(i=>i.size===sz);return `<div style="text-align:center;min-width:38px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${x?Number(x.recommended||0):0}</div></div>`;}).join("");
+  const total=(g.items||[]).reduce((a,x)=>a+Number(x.recommended||0),0),sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0),ordered=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyOrdered||0),0),received=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyReceived||0),0);
+  return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Ventas acumuladas: ${sold} · Recibidas: ${received} · Ya pedidas: ${ordered}</div></div>`;
+ }).join(""):`<div class="analysis-note">${onlyPending?"No hay piezas pendientes por pedir.":"No hay ventas registradas para reposición."}</div>`;
+ return `<div class="analysis-note" style="margin-top:0"><strong>${title}</strong><br>Ciclo ${r.cycleNumber||state.growthCycle.cycle||1} · ${fmtDate(r.c.start)} al ${fmtDate(r.c.end)}<br><strong>${r.c.pieces} piezas vendidas en este ciclo</strong> · ${r.daysReached14?'14 días cumplidos':'menos de 14 días'} · ${r.salesReached50?'50 piezas alcanzadas':'menos de 50 piezas'}</div>${r.pendingPieces>0?`<div class="analysis-note"><strong>📦 Pedidos pendientes:</strong> ${r.pendingOrders.length} · ${r.pendingPieces} piezas. Ya están pedidas y no se vuelven a recomendar.</div>`:''}<div style="margin-top:8px">${groups}</div><div class="analysis-note"><strong>Total pendiente de reposición:</strong> ${r.totalReplenishment} piezas</div>${demandReminderHTML(r.demand)}${includeObservations?cycleObservationsHTML(r):""}`;
+}
 function renderCycleHistory(){
  const e=document.getElementById("cycleHistoryReport");if(!e)return;
  const history=cycleHistory().slice().reverse();
@@ -3698,14 +3681,9 @@ function cyclePhase(elapsed){
 function renderHomeCycle(){
  const e=document.getElementById("homeCycleCard"); if(!e)return;
  ensureGrowthData();
- finalizeCurrentCycleIfDue();
- const c=cycleSales();
- const elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1));
- const ph=cyclePhase(elapsed);
- const sales=Math.min(50,c.pieces);
- e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink"></span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div></div></details>`;
+ const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),ph=cyclePhase(elapsed),sales=Math.min(50,c.pieces);
+ e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink"></span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div><button class="btn dark" style="width:100%;margin-top:12px" onclick="closeCurrentCycle()">CERRAR CICLO</button></div></details>`;
 }
-
 function refreshHomeSales(){
  const d=day();
  const sales=(d.movements||[]).filter(m=>m.type==="sale");
