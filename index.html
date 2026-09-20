@@ -407,6 +407,7 @@ header{padding:20px 18px 10px}
 .priority-dot{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;white-space:nowrap}.priority-dot.red{background:#ffe1e1;color:#b42318}.priority-dot.orange{background:#fff0df;color:#b45309}.priority-dot.yellow{background:#fff7cc;color:#8a5a00}.priority-dot.green{background:#e8f7ec;color:#187a3d}.cycle-alert.red{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite}.cycle-alert.orange{background:#fff0df;color:#b45309}.cycle-alert.yellow{background:#fff7cc;color:#8a5a00}.cycle-alert.green{background:#e8f7ec;color:#187a3d}
 .home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-indicator{display:inline-flex;width:12px;height:12px;border-radius:50%;vertical-align:-1px;border:0;box-shadow:none}.cycle-indicator.cycle-phase-red{background:#d92d20 !important}.cycle-indicator.cycle-phase-yellow{background:#eab308 !important}.cycle-indicator.cycle-phase-orange{background:#f97316 !important}.cycle-indicator.cycle-phase-green{background:#16a34a !important}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
 @keyframes k10Pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.login-transition{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:rgba(63,63,63,.97);opacity:0;transition:opacity .18s ease}.login-transition.show{display:flex;opacity:1}.login-transition img{width:92px;height:92px;object-fit:contain;border-radius:18px;animation:k10LoginLogo 1s ease-in-out both}.login-transition .login-transition-logo{font-size:16px;font-weight:900;letter-spacing:1.2px;color:#fff;margin-top:12px;text-align:center}.login-transition-inner{display:flex;flex-direction:column;align-items:center;justify-content:center}@keyframes k10LoginLogo{0%{transform:scale(.86);opacity:.35}45%{transform:scale(1);opacity:1}100%{transform:scale(1.02);opacity:1}}
 </style>
 
 </head>
@@ -453,6 +454,8 @@ header{padding:20px 18px 10px}
   </div>
 
 </div>
+
+<div id="loginTransition" class="login-transition" aria-hidden="true"><div class="login-transition-inner"><img id="loginTransitionLogo" alt="K10 CONTROL logo"><div class="login-transition-logo">K10 CONTROL</div></div></div>
 
 <!-- CONFIGURACIÓN INICIAL -->
 
@@ -1443,51 +1446,33 @@ function closeModal(id){
 ========================= */
 
 function login(){
-
  const u=document.getElementById("loginUser").value.trim();
-
  const p=document.getElementById("loginPass").value;
-
- if(u==="K10.28" && p==="ksmv281121"){
-
-  document.getElementById("loginError").style.display="none";
-
-  document.getElementById("loginScreen").style.display="none";
-
-  /*
-
-   PRIMERA VEZ:
-
-   se muestra la configuración.
-
-   DESPUÉS:
-
-   entra directamente al sistema.
-
-  */
-
-  if(!state){
-
-   document.getElementById("setupScreen").style.display="flex";
-
-   renderSetup();
-
-  }else{
-
-   document.getElementById("app").style.display="block";
-
-   ensureToday();
-
-   render();
-
-  }
-
- }else{
-
+ if(u!=="K10.28" || p!=="ksmv281121"){
   document.getElementById("loginError").style.display="block";
-
+  return;
  }
-
+ document.getElementById("loginError").style.display="none";
+ const transition=document.getElementById("loginTransition");
+ const sourceLogo=document.querySelector("#loginScreen .login-logo-image");
+ const transitionLogo=document.getElementById("loginTransitionLogo");
+ if(sourceLogo && transitionLogo)transitionLogo.src=sourceLogo.src;
+ if(transition){
+  transition.style.display="flex";
+  requestAnimationFrame(()=>transition.classList.add("show"));
+ }
+ setTimeout(()=>{
+  document.getElementById("loginScreen").style.display="none";
+  if(transition){transition.classList.remove("show");setTimeout(()=>{transition.style.display="none";},180);}
+  if(!state){
+   document.getElementById("setupScreen").style.display="flex";
+   renderSetup();
+  }else{
+   document.getElementById("app").style.display="block";
+   ensureToday();
+   render();
+  }
+ },1000);
 }
 
 /* =========================
@@ -1934,8 +1919,8 @@ function renderDebtPanel(){
  ensurePendingDebts();
  const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
  const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
- const w=workerPeriodData(),workerPaid=paidWorker(),workerAmount=workerPendingAmount();
- const workerCard=`<div class="card" style="margin:0 0 14px;padding:14px;border:2px solid #111"><div style="font-size:11px;color:#777;font-weight:900">PAGO DEL TRABAJADOR</div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:5px"><div><strong style="font-size:22px">${money(workerAmount||w.total)}</strong><div style="font-size:11px;color:#777;margin-top:3px">Base $1,300 + $10 por pieza · Miércoles a domingo</div><div style="font-size:11px;color:#777">Periodo: ${fmtDate(w.start)} al ${fmtDate(w.end)} · ${w.pieces} piezas</div></div><button class="btn green" ${workerPaid?'disabled':''} style="opacity:${workerPaid?'.5':'1'}" onclick="payWorker()">${workerPaid?'TRABAJADOR PAGADO':'PAGAR / LIBERAR TRABAJADOR'}</button></div></div>`;
+ const w=workerPeriodData(),workerPaid=paidWorker(),workerAmount=workerPendingAmount(),todayIsSunday=new Date(today()+"T12:00:00").getDay()===0,canPayWorker=todayIsSunday&&!workerPaid&&today()===w.end;
+ const workerCard=`<div class="card" style="margin:0 0 14px;padding:14px;border:2px solid #111"><div style="font-size:11px;color:#777;font-weight:900">PAGO DEL TRABAJADOR</div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:5px"><div><strong style="font-size:22px">${money(workerAmount||w.total)}</strong><div style="font-size:11px;color:#777;margin-top:3px">Base $1,300 + $10 por pieza · Miércoles a domingo</div><div style="font-size:11px;color:#777">Periodo: ${fmtDate(w.start)} al ${fmtDate(w.end)} · ${w.pieces} piezas</div></div><button class="btn green" ${canPayWorker?'':'disabled'} style="opacity:${canPayWorker?'1':'.5'}" onclick="payWorker()">${workerPaid?'TRABAJADOR PAGADO':(canPayWorker?'PAGAR / LIBERAR TRABAJADOR':'PAGO DISPONIBLE EL DOMINGO')}</button></div></div>`;
  const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
  e.innerHTML=`${workerCard}<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
 }
@@ -2922,7 +2907,8 @@ function workerPeriod(){
    const nextMonday=new Date(paidAt);
    const paidDay=nextMonday.getDay();
    nextMonday.setDate(nextMonday.getDate()+(paidDay===0?1:((8-paidDay)%7)));
-   if(today()>=nextMonday.toISOString().slice(0,10)) {
+   const nextMondayKey=nextMonday.toISOString().slice(0,10);
+   if(today()>=nextMondayKey || (paidDay===0 && today()===last.paidAt)) {
     start=nextMonday;
     end=new Date(start);
     end.setDate(start.getDate()+6);
@@ -2962,7 +2948,7 @@ function payWorker(){
  if(!assertDayOpen())return;
  const w=workerPeriodData();
  if(workerPaymentForPeriod(w))return alert("El trabajador ya fue pagado para este periodo.");
- if(new Date(today()+"T12:00:00").getDay()!==0)return alert("El pago del trabajador se libera los domingos.");
+ if(new Date(today()+"T12:00:00").getDay()!==0 || today()!==w.end)return alert("El pago del trabajador se libera el domingo al cierre del periodo.");
  if(cash()<w.total)return alert(`No hay suficiente dinero en caja.\n\nDisponible: ${money(cash())}\nNecesario: ${money(w.total)}`);
  day().movements.push({
   id:crypto.randomUUID(),type:"worker",concept:"Pago trabajador",amount:w.total,
@@ -3310,8 +3296,10 @@ function renderDebtPanel(){
  ensurePendingDebts();
  const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
  const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
+ const w=workerPeriodData(),workerPaid=paidWorker(),workerAmount=workerPendingAmount(),todayIsSunday=new Date(today()+"T12:00:00").getDay()===0,canPayWorker=todayIsSunday&&!workerPaid&&today()===w.end;
+ const workerCard=`<div class="card" style="margin:0 0 14px;padding:14px;border:2px solid #111"><div style="font-size:11px;color:#777;font-weight:900">PAGO DEL TRABAJADOR</div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:5px"><div><strong style="font-size:22px">${money(workerAmount||w.total)}</strong><div style="font-size:11px;color:#777;margin-top:3px">Base $1,300 + $10 por pieza · Miércoles a domingo</div><div style="font-size:11px;color:#777">Periodo: ${fmtDate(w.start)} al ${fmtDate(w.end)} · ${w.pieces} piezas</div></div><button class="btn green" ${canPayWorker?'':'disabled'} style="opacity:${canPayWorker?'1':'.5'}" onclick="payWorker()">${workerPaid?'TRABAJADOR PAGADO':(canPayWorker?'PAGAR / LIBERAR TRABAJADOR':'PAGO DISPONIBLE EL DOMINGO')}</button></div></div>`;
  const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
- e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
+ e.innerHTML=`${workerCard}<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
 }
 function openDebtPayment(id){
  if(!assertDayOpen())return;
