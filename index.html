@@ -1575,7 +1575,6 @@ function finishSetup(){
  state.growthCycle=state.growthCycle||{};
  state.growthCycle.startDate=d;
  state.growthCycle.periodStartDate=d;
- state.growthCycle.periodStartTimestamp=Date.now();
  state.growthCycle.cycle=1;
  state.growthCycle.history=Array.isArray(state.growthCycle.history)?state.growthCycle.history:[];
  delete state.growthCycle.lastOrderDate;
@@ -2916,125 +2915,20 @@ function renderMovements(id,arr){
 ========================= */
 
 function weekData(){
-
- const now=
-
-  new Date(today()+"T12:00:00");
-
- const dayN=now.getDay();
-
- const diff=
-
-  dayN===0?6:dayN-1;
-
- const start=new Date(now);
-
- start.setDate(
-
-  now.getDate()-diff
-
- );
-
- const s=
-
-  start.toISOString().slice(0,10);
-
- let pieces=0;
-
- let sales=0;
-
- Object.values(state.days)
-
- .forEach(d=>{
-
-  if(d.date>=s&&d.date<=today()){
-
-   d.movements.forEach(m=>{
-
-    if(m.type==="sale"){
-
-     pieces+=m.quantity||0;
-
-     sales+=m.amount||0;
-
-    }
-
-   });
-
-  }
-
- });
-
- return{pieces,sales};
-
+ const w=workerPaymentInfo();
+ return{pieces:w.pieces,sales:salesBetween(w.period.start,w.period.end).reduce((a,m)=>a+Number(m.amount||0),0)};
 }
 
-function paidWorker(){
-
- return state.workerPayments
-
- .some(x=>x.date===today());
-
-}
+function paidWorker(){ return workerPaymentInfo().paid; }
 
 function payWorker(){
-
- if(paidWorker()){
-
-  return alert("El trabajador ya fue pagado.");
-
- }
-
- const w=weekData();
-
- const total=
-
-  1300+w.pieces*10;
-
- if(cash()<total){
-
-  return alert("No hay suficiente dinero en caja.");
-
- }
-
- day().movements.push({
-
-  id:crypto.randomUUID(),
-
-  type:"worker",
-
-  concept:"Pago trabajador",
-
-  amount:total,
-
-  pieces:w.pieces,
-
-  timestamp:Date.now(),
-
-  time:timeNow()
-
- });
-
- state.workerPayments.push({
-
-  date:today(),
-
-  amount:total,
-
-  pieces:w.pieces
-
- });
-
- save();
-
- render();
-
- alert(
-
-  `Pago registrado: ${money(total)}`
-
- );
-
+ const w=workerPaymentInfo();
+ if(w.paid)return alert("El trabajador ya fue pagado para este periodo.");
+ if(cash()<w.total)return alert("No hay suficiente dinero en caja.");
+ day().movements.push({id:crypto.randomUUID(),type:"worker",concept:`Pago trabajador ${w.period.start} al ${w.period.end}`,amount:w.total,pieces:w.pieces,periodStart:w.period.start,periodEnd:w.period.end,timestamp:Date.now(),time:timeNow()});
+ state.workerPayments=Array.isArray(state.workerPayments)?state.workerPayments:[];
+ state.workerPayments.push({date:today(),amount:w.total,pieces:w.pieces,periodStart:w.period.start,periodEnd:w.period.end});
+ save(); render(); alert(`Pago registrado: ${money(w.total)}`);
 }
 
 /* =========================
@@ -3045,7 +2939,6 @@ function ensureGrowthData(){
  if(!Array.isArray(state.marketDemand)){state.marketDemand=[];changed=true;}
  if(!state.growthCycle){state.growthCycle={cycle:1};changed=true;}
  if(!state.growthCycle.periodStartDate){state.growthCycle.periodStartDate=state.startDate||state.growthCycle.startDate||today();changed=true;}
- if(!state.growthCycle.periodStartTimestamp){state.growthCycle.periodStartTimestamp=0;changed=true;}
  if(!state.growthCycle.cycle){state.growthCycle.cycle=1;changed=true;}
  if(!state.growthCycle.startDate){state.growthCycle.startDate=state.startDate||today();changed=true;}
  if(!Array.isArray(state.growthCycle.history)){state.growthCycle.history=[];changed=true;}
@@ -3067,8 +2960,7 @@ function closeCurrentCycle(trigger="CIERRE MANUAL"){
  if(history.some(x=>Number(x.cycle)===cycleNumber&&x.start===c.start)){alert("Este ciclo ya está cerrado.");return false;}
  history.push({cycle:cycleNumber,start:c.start,end:c.end,closedAt:new Date().toISOString(),trigger,pieces:c.pieces,totalRecommended:r.totalRecommended,totalReplenishment:r.totalReplenishment,totalDemand:0,pendingPieces:r.pendingPieces,items:r.items.map(x=>({...x})),groupedItems:r.groupedItems.map(g=>({name:g.name,items:g.items.map(x=>({...x}))}))});
  state.growthCycle.cycle=cycleNumber+1;
- state.growthCycle.periodStartDate=c.end;
- state.growthCycle.periodStartTimestamp=Date.now();
+ state.growthCycle.periodStartDate=addDaysKey(c.end,1);
  state.growthCycle.lastClosedDate=c.end;
  save();render();
  alert(`Ciclo ${cycleNumber} cerrado correctamente.`);
@@ -3101,11 +2993,7 @@ function cycleSales(){
  ensureGrowthData();
  const start=state.growthCycle.periodStartDate||state.startDate||state.growthCycle.startDate||today();
  const end=today();
- const startTs=Number(state.growthCycle.periodStartTimestamp)||0;
- const sales=salesBetween(start,end).filter(m=>{
-  if(m.date!==start||!startTs)return true;
-  return Number(m.timestamp||0)>=startTs;
- });
+ const sales=salesBetween(start,end);
  return{start,end,sales,pieces:sales.reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0),schedule:k10CycleSchedule(start)};
 }
 
@@ -3146,10 +3034,10 @@ function statisticsData(){
 }
 function renderStatistics(){
  const e=document.getElementById("statisticsContent");if(!e)return;const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
- const ph=cyclePhase(r.elapsed,r.c.pieces); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${Math.min(50,r.c.pieces)} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
+ const ph=cyclePhase(r.elapsed); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${Math.min(50,r.c.pieces)} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
  const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
- e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed,r.c.pieces).cls} cycle-blink"></span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
+ e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed).cls} cycle-blink"></span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
 }
 
 function monthlyFinancialAnalysis(){
@@ -3174,9 +3062,9 @@ function monthlyFinancialAnalysis(){
  const netAfterWithdrawals=gross-worker-other-withdrawalTotal;
  return{start,revenue,cogs,gross,worker,other,withdrawals:withdrawalTotal,netAfterWithdrawals};
 }
-function pendingOrderQuantities(){
+function pendingOrderQuantities(cycleStart=cycleSales().start){
  const pending={};
- (state.orders||[]).filter(o=>!o.received).forEach(o=>{
+ (state.orders||[]).filter(o=>!o.received && String(o.date||today())>=cycleStart).forEach(o=>{
   const items=Array.isArray(o.items)&&o.items.length?o.items:[o];
   items.forEach(item=>{
    const productKey=String(item.productId||'NEW:'+String(item.productName||'').trim().toLowerCase());
@@ -3189,25 +3077,24 @@ function growthTrackingStart(productId){
  ensureGrowthData();
  return state.growthCycle.productTrackingStart?.[productId]||state.growthCycle.startDate||state.startDate||today();
 }
-function receivedOrderQuantities(){
+function receivedOrderQuantities(cycleStart=cycleSales().start){
  const received={};
  (state.orders||[]).filter(o=>o.received).forEach(o=>{
   const receivedDate=o.receivedDate||o.date||today();
   const items=Array.isArray(o.items)&&o.items.length?o.items:[o];
   items.forEach(item=>{
-   const productId=item.productId;if(!productId||receivedDate<growthTrackingStart(productId))return;
+   const productId=item.productId;if(!productId||receivedDate<cycleStart)return;
    SIZES.forEach(size=>{const qty=Number(item.quantities?.[size]||0);if(qty>0){const key=String(productId)+'|'+size;received[key]=(received[key]||0)+qty;}});
   });
  });
  return received;
 }
-function positiveInventoryAdjustments(){
+function positiveInventoryAdjustments(cycleStart=cycleSales().start){
  const adjusted={};
  Object.values(state.days||{}).forEach(d=>{
-  if(!d?.date)return;
+  if(!d?.date || d.date<cycleStart)return;
   (d.movements||[]).forEach(m=>{
    if(m.type!=="inventory_adjustment"||Number(m.quantity||0)<=0||!m.productId||!m.size)return;
-   if(d.date<growthTrackingStart(m.productId))return;
    const key=String(m.productId)+'|'+String(m.size);adjusted[key]=(adjusted[key]||0)+Number(m.quantity||0);
   });
  });
@@ -3215,7 +3102,7 @@ function positiveInventoryAdjustments(){
 }
 function growthPurchaseAnalysis(){
  ensureGrowthData();
- const c=cycleSales(),pending=pendingOrderQuantities(),received=receivedOrderQuantities(),adjusted=positiveInventoryAdjustments(),by={};
+ const c=cycleSales(),pending=pendingOrderQuantities(c.start),received=receivedOrderQuantities(c.start),adjusted=positiveInventoryAdjustments(c.start),by={};
  const trackingStart=state.growthCycle.startDate||state.startDate||c.start;
  salesBetween(trackingStart,c.end).forEach(m=>{
   const key=String(m.productId||"")+"|"+String(m.size||"");
@@ -3234,7 +3121,7 @@ function growthPurchaseAnalysis(){
  }).filter(x=>x.replenish>0||x.sold>0);
  items.sort((a,b)=>b.recommended-a.recommended||b.sold-a.sold||a.name.localeCompare(b.name));
  const mandatoryCost=items.reduce((a,x)=>a+x.replenish*Number(x.unitCost||0),0);
- const availableCash=Math.max(0,Number(cash())||0),debt=currentDebt(),cashAfterDebt=Math.max(0,availableCash-debt),growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
+ const availableCash=Math.max(0,Number(cash())||0),debt=currentDebt(),workerPending=workerPendingAmount(),cashAfterDebt=Math.max(0,availableCash-debt-workerPending),growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
  const totalReplenishment=items.reduce((a,x)=>a+x.replenish,0),totalRecommended=totalReplenishment,totalDemand=0;
  const salesReached50=c.pieces>=50,elapsed=Math.max(0,daysBetweenKeys(c.start,c.end)+1),daysReached14=elapsed>=14,due=salesReached50||daysReached14;
  const overallPriority=due?'🟠 REVISAR PEDIDO':'🟢 CICLO EN CURSO',overallClass=due?'orange':'green';
@@ -3242,7 +3129,7 @@ function growthPurchaseAnalysis(){
  const groupedItems=Object.values(grouped),inv=currentInventoryAnalysis();
  let growthTarget=400;if(inv.pieces>=400)growthTarget=Math.ceil(inv.pieces/50)*50+50;
  const pendingOrders=(state.orders||[]).filter(o=>!o.received),pendingPieces=pendingOrders.reduce((a,o)=>a+Number(o.pieces||0),0);
- return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand:getDemandSummary(),mandatoryCost,availableCash,debt,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
+ return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand:getDemandSummary(),mandatoryCost,availableCash,debt,workerPending,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
 }
 
 function cycleObservationsHTML(r){
@@ -3256,9 +3143,9 @@ function cycleObservationsHTML(r){
  }else notes.push('Aún no hay ventas suficientes para detectar un producto o talla de mayor movimiento.');
  const demand=r.demand||[];
  if(demand.length){const d=demand.slice().sort((a,b)=>Number(b.count||0)-Number(a.count||0))[0];if(d)notes.push(`La demanda también muestra interés por ${esc(d.name)} con ${Number(d.count||0)} solicitud${Number(d.count||0)===1?'':'es'}.`);}
- const debt=Number(r.debt)||0, available=Math.max(0,Number(r.availableCash)||0), mandatory=Number(r.mandatoryCost)||0;
- const afterRep=Math.max(0,available-mandatory), rent=Math.min(5500,afterRep), afterRent=Math.max(0,afterRep-rent), abono=debt?Math.min(debt,afterRent):0;
- if(debt){notes.push(abono>0?`Pagos pendientes: ${money(debt)}. Después de considerar reposición y apartar ${money(rent)} para el arriendo, un abono prudente sería de hasta ${money(abono)}, dejando ${money(debt-abono)} pendientes.`:`Pagos pendientes: ${money(debt)}. Por ahora conviene conservar el efectivo para operación, reposición y arriendo antes de abonar.`);}else notes.push('No hay pagos pendientes registrados actualmente.');
+ const debt=Number(r.debt)||0, worker=Number(r.workerPending)||0, available=Math.max(0,Number(r.availableCash)||0), mandatory=Number(r.mandatoryCost)||0;
+ const afterRep=Math.max(0,available-mandatory-worker), rent=Math.min(5500,afterRep), afterRent=Math.max(0,afterRep-rent), abono=debt?Math.min(debt,afterRent):0;
+ if(worker)notes.push(`Pago del trabajador pendiente: ${money(worker)}. Se reserva antes de considerar dinero disponible para abonos o crecimiento.`); if(debt){notes.push(abono>0?`Pagos pendientes: ${money(debt)}. Después de considerar reposición y apartar ${money(rent)} para el arriendo, un abono prudente sería de hasta ${money(abono)}, dejando ${money(debt-abono)} pendientes.`:`Pagos pendientes: ${money(debt)}. Por ahora conviene conservar el efectivo para operación, reposición y arriendo antes de abonar.`);}else notes.push('No hay pagos pendientes registrados actualmente.');
  const now=new Date(today()+"T12:00:00");let rentDate=new Date(now.getFullYear(),now.getMonth(),21);if(rentDate<now)rentDate=new Date(now.getFullYear(),now.getMonth()+1,21);const days=Math.max(0,Math.ceil((rentDate-now)/86400000));
  notes.push(`Arriendo: ${money(5500)}. Faltan ${days} día${days===1?'':'s'} para el próximo día 21. El reporte considera esta reserva antes de recomendar crecimiento.`);
  return `<div class="analysis-note"><strong>OBSERVACIONES</strong>${notes.map(n=>`<div style="margin-top:7px">• ${n}</div>`).join('')}</div>`;
@@ -3268,22 +3155,10 @@ function demandReminderHTML(demand){
  const list=(demand||[]).slice(0,12);
  return `<div class="analysis-note" style="margin-top:8px"><strong>Demandas y oportunidades</strong><br><small>Recordatorios comerciales. No son obligaciones de compra y no afectan la reposición.</small>${list.length?`<div style="margin-top:8px">${list.map(d=>`<div style="margin-top:6px">• ${esc(d.name)}${d.size&&d.size!=="Todas"?` ${esc(d.size)}`:""} — solicitado por cliente</div>`).join("")}</div>`:'<div style="margin-top:7px">No hay demandas registradas.</div>'}</div>`;
 }
-function normalizeReportSize(size){
- const s=String(size||"").trim().toUpperCase().replace(/\s+/g,"");
- if(s==="XXL")return"2XL";
- if(s==="XXXL")return"3XL";
- if(s==="XXXXL")return"4XL";
- return s;
-}
 function cycleReportHTML(r, title="REPORTE DE REPOSICIÓN", options={}){
  const onlyPending=!!options.onlyPending,includeObservations=options.includeObservations!==false,sizes=SIZES;
  const groups=r.groupedItems.length?r.groupedItems.map(g=>{
-  const sizeCells=sizes.map(sz=>{
-   const matches=(g.items||[]).filter(i=>normalizeReportSize(i.size)===normalizeReportSize(sz));
-   const sold=matches.reduce((a,i)=>a+Number(i.sold||0),0);
-   const recommended=matches.reduce((a,i)=>a+Number(i.recommended||0),0);
-   return `<div style="text-align:center;min-width:42px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${recommended}</div><div style="font-size:10px;color:#777">vendidas ${sold}</div></div>`;
-  }).join("");
+  const sizeCells=sizes.map(sz=>{const x=(g.items||[]).find(i=>i.size===sz);return `<div style="text-align:center;min-width:38px"><div style="font-size:11px;color:#777;font-weight:800">${esc(sz)}</div><div style="font-size:18px;font-weight:900">${x?Number(x.recommended||0):0}</div></div>`;}).join("");
   const total=(g.items||[]).reduce((a,x)=>a+Number(x.recommended||0),0),sold=(g.items||[]).reduce((a,x)=>a+Number(x.sold||0),0),ordered=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyOrdered||0),0),received=(g.items||[]).reduce((a,x)=>a+Number(x.alreadyReceived||0),0);
   return `<div class="card" style="margin:8px 0;padding:12px 10px"><div style="font-weight:900;margin-bottom:8px">${esc(g.name)}</div><div style="display:flex;align-items:flex-end;gap:7px;overflow-x:auto">${sizeCells}<div style="margin-left:auto;min-width:105px;text-align:right;border-left:1px solid #ddd;padding-left:10px"><div style="font-size:11px;color:#777;font-weight:800">TOTAL</div><div style="font-size:20px;font-weight:900">${total}</div></div></div><div style="font-size:12px;color:#666;margin-top:7px">Ventas acumuladas: ${sold} · Recibidas: ${received} · Ya pedidas: ${ordered}</div></div>`;
  }).join(""):`<div class="analysis-note">${onlyPending?"No hay piezas pendientes por pedir.":"No hay ventas registradas para reposición."}</div>`;
@@ -3330,7 +3205,7 @@ function growthSuggestedItems(r){
  return (r.items||[]).filter(x=>Number(x.sold||0)>0).map(x=>{
   const sold=Number(x.sold)||0;
   const pending=Number(x.alreadyOrdered)||0;
-  const baseGrowth=sold>=5?Math.min(2,Math.max(1,Math.ceil(sold*0.2))):0;
+  const baseGrowth=Math.floor(sold/4);
   const uncoveredGrowth=Math.max(0,baseGrowth-Math.max(0,pending-sold));
   return {...x,suggestedGrowth:uncoveredGrowth};
  }).filter(x=>x.suggestedGrowth>0).sort((a,b)=>b.suggestedGrowth-a.suggestedGrowth||b.sold-a.sold||a.name.localeCompare(b.name));
@@ -3343,6 +3218,32 @@ function renderGrowthReport(){
  const suggestionHTML=suggestions.length?suggestions.map(x=>`<div class="report-line"><span>${esc(x.name)} — ${esc(x.size)}</span><strong>+${x.suggestedGrowth}</strong></div>`).join(""):'<div class="analysis-note">Sin crecimiento sugerido.</div>';
  e.innerHTML=`${growthSalesLineChart(r)}<div style="margin-top:14px;font-weight:900">Crecimiento sugerido</div><div style="margin-top:4px">${suggestionHTML}</div>`;
  renderCycleHistory();
+}
+
+function workerPeriod(){
+ const t=new Date(today()+"T12:00:00");
+ const wd=t.getDay();
+ const start=new Date(t);
+ if(wd>=3 && wd<=6) start.setDate(t.getDate()-(wd-3));
+ else if(wd===0) start.setDate(t.getDate()-4);
+ else start.setDate(t.getDate()-5);
+ const end=new Date(start); end.setDate(start.getDate()+4);
+ return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)};
+}
+function workerSalesPieces(period=workerPeriod()){
+ return salesBetween(period.start,period.end).reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
+}
+function workerPaymentInfo(){
+ const period=workerPeriod();
+ const pieces=workerSalesPieces(period);
+ const commission=pieces*10;
+ const total=1300+commission;
+ const paid=(state.workerPayments||[]).some(x=>String(x.periodEnd||x.date||"")===period.end);
+ return {period,pieces,commission,total,paid};
+}
+function workerPendingAmount(){
+ const w=workerPaymentInfo();
+ return w.paid?0:w.total;
 }
 
 function ensurePendingDebts(){
@@ -3371,7 +3272,9 @@ function renderDebtPanel(){
  const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
  const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
  const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
- e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
+ const worker=workerPaymentInfo();
+ const workerBox=worker.paid?`<div class="card" style="margin:0 0 12px;padding:13px"><div style="font-size:10px;color:#777;font-weight:900">PAGO AL TRABAJADOR</div><strong style="font-size:21px">PAGADO</strong><div style="font-size:11px;color:#777;margin-top:3px">Periodo: ${fmtDate(worker.period.start)} al ${fmtDate(worker.period.end)}</div></div>`:`<div class="card" style="margin:0 0 12px;padding:13px"><div style="font-size:10px;color:#777;font-weight:900">PAGO AL TRABAJADOR</div><strong style="font-size:21px">${money(worker.total)}</strong><div style="font-size:11px;color:#777;margin-top:3px">Base: ${money(1300)} · ${worker.pieces} prendas de miércoles a domingo · Comisión: ${money(worker.commission)}</div><button class="btn green" style="width:100%;margin-top:10px" onclick="payWorker()">PAGAR TRABAJADOR</button></div>`;
+ e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt()+workerPendingAmount())}</div>${workerBox}${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
 }
 function openDebtPayment(id){
  if(!assertDayOpen())return;
@@ -3407,7 +3310,7 @@ function openNewDebt(){
 function renderDebt(){
  const e=document.getElementById("debtCard"); if(!e)return;
  ensurePendingDebts();
- const pending=currentDebt();
+ const pending=currentDebt()+workerPendingAmount();
  e.innerHTML=`<div onclick="openDebtPanel()" style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;color:#777;font-weight:800">PAGO PENDIENTE</div><strong style="font-size:22px">${money(pending)}</strong><div style="font-size:12px;color:#777;margin-top:3px">Toca para ver los pagos pendientes</div></div><span style="font-size:12px;font-weight:900;color:#111">›</span></div>`;
 }
 
@@ -3690,10 +3593,8 @@ function renderBusinessAnalysis(){const box=document.getElementById("businessAna
 
 ========================= */
 
-function cyclePhase(elapsed,pieces=0){
- const timePct=Math.min(100,Math.max(0,(Math.max(0,elapsed)/14)*100));
- const salesPct=Math.min(100,Math.max(0,(Math.max(0,Number(pieces)||0)/50)*100));
- const pct=Math.max(timePct,salesPct);
+function cyclePhase(elapsed){
+ const pct=Math.min(100,Math.max(0,(elapsed/14)*100));
  if(pct<25)return{pct,cls:"red",label:"INICIO DEL CICLO"};
  if(pct<50)return{pct,cls:"yellow",label:"CICLO EN AVANCE"};
  if(pct<75)return{pct,cls:"orange",label:"CICLO AVANZADO"};
@@ -3702,7 +3603,7 @@ function cyclePhase(elapsed,pieces=0){
 function renderHomeCycle(){
  const e=document.getElementById("homeCycleCard"); if(!e)return;
  ensureGrowthData();
- const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),sales=Math.min(50,c.pieces),ph=cyclePhase(elapsed,sales);
+ const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),ph=cyclePhase(elapsed),sales=Math.min(50,c.pieces);
  e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink"></span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div><button class="btn dark" style="width:100%;margin-top:12px" onclick="closeCurrentCycle()">CERRAR CICLO</button></div></details>`;
 }
 function refreshHomeSales(){
