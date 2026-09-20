@@ -730,18 +730,6 @@ header{padding:20px 18px 10px}
 
   </div>
 
-  <details class="report-card collapsible">
-    <summary><span>📊 Pago del trabajador</span></summary>
-    <div class="collapse-body">
-      <p>Pago del trabajador cada domingo. Base semanal de $1,300 y comisión de $10 por pieza vendida de miércoles a domingo.</p>
-      <div class="report-line"><span>Piezas vendidas</span><strong id="weekPieces">0</strong></div>
-      <div class="report-line"><span>Ventas</span><strong id="weekSales">$0</strong></div>
-      <div class="report-line"><span>Sueldo base</span><strong>$1,300</strong></div>
-      <div class="report-line"><span>Comisión</span><strong id="weekCommission">$0</strong></div>
-      <div class="report-total">A pagar: <span id="workerPay">$1,300</span></div>
-      <button id="workerPayButton" class="btn green" style="width:100%;margin-top:15px" onclick="payWorker()">PAGAR TRABAJADOR</button>
-    </div>
-  </details>
   <details class="report-card collapsible" id="growthPurchaseCard">
     <summary><span>🚀 Crecimiento</span></summary>
     <div class="collapse-body">
@@ -1944,12 +1932,12 @@ function closeDebtPanel(){const e=document.getElementById("debtPanelWindow");if(
 function renderDebtPanel(){
  const e=document.getElementById("debtPanelBody"); if(!e)return;
  ensurePendingDebts();
- const w=workerPayData();
  const active=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)>0);
  const paid=state.pendingDebts.filter(d=>Math.max(0,Number(d.remaining)||0)<=0);
+ const w=workerPeriodData(),workerPaid=paidWorker(),workerAmount=workerPendingAmount();
+ const workerCard=`<div class="card" style="margin:0 0 14px;padding:14px;border:2px solid #111"><div style="font-size:11px;color:#777;font-weight:900">PAGO DEL TRABAJADOR</div><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:5px"><div><strong style="font-size:22px">${money(workerAmount||w.total)}</strong><div style="font-size:11px;color:#777;margin-top:3px">Base $1,300 + $10 por pieza · Miércoles a domingo</div><div style="font-size:11px;color:#777">Periodo: ${fmtDate(w.start)} al ${fmtDate(w.end)} · ${w.pieces} piezas</div></div><button class="btn green" ${workerPaid?'disabled':''} style="opacity:${workerPaid?'.5':'1'}" onclick="payWorker()">${workerPaid?'TRABAJADOR PAGADO':'PAGAR / LIBERAR TRABAJADOR'}</button></div></div>`;
  const rows=active.map((d,i)=>`<div class="card" style="margin:0 0 10px;padding:13px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div style="font-size:10px;color:#777;font-weight:900">PAGO PENDIENTE #${i+1}</div><strong style="font-size:21px">${money(d.remaining)}</strong><div style="font-size:11px;color:#777">Original: ${money(d.originalAmount)} · ${fmtDate(d.date)}</div>${d.note?`<div style="font-size:11px;color:#777;margin-top:3px">${esc(d.note)}</div>`:''}</div><button class="btn dark" onclick="openDebtPayment('${d.id}')">ABONAR</button></div></div>`).join("")||'<div class="analysis-note">No hay pagos pendientes.</div>';
- const workerCard=`<div class="card" style="margin:0 0 14px;padding:14px;border:2px solid #111"><div style="font-size:10px;color:#777;font-weight:900">PAGO DEL TRABAJADOR</div><strong style="display:block;font-size:24px;margin-top:3px">${money(w.pendingAmount)}</strong><div class="report-line"><span>Sueldo base</span><strong>${money(1300)}</strong></div><div class="report-line"><span>Piezas con comisión (miércoles–domingo)</span><strong>${w.pieces}</strong></div><div class="report-line"><span>Comisión</span><strong>${money(w.commission)}</strong></div><div style="font-size:11px;color:#777;margin-top:6px">Periodo: ${fmtDate(w.period.start)} al ${fmtDate(w.period.end)}. ${w.period.isSunday?'Hoy se incluyen las ventas de domingo.':'El pago se libera el domingo.'}</div><button class="btn green" style="width:100%;margin-top:12px" onclick="payWorker()" ${w.paid||!w.period.isSunday?'disabled':''}>${w.paid?'TRABAJADOR PAGADO':w.period.isSunday?'PAGAR / LIBERAR TRABAJADOR':'PAGO EL DOMINGO'}</button></div>`;
- e.innerHTML=`${workerCard}<div class="analysis-note" style="margin-top:0"><strong>Total otros pagos pendientes:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
+ e.innerHTML=`${workerCard}<div class="analysis-note" style="margin-top:0"><strong>Total pendiente:</strong> ${money(currentDebt())}</div>${rows}<button class="btn light" style="width:100%;margin-top:4px" onclick="openNewDebt()">＋ NUEVO PAGO PENDIENTE</button>${paid.length?`<div style="margin-top:18px;font-size:12px;font-weight:900">PAGADOS COMPLETOS</div>${paid.slice().reverse().map(d=>`<div class="report-line"><span>${fmtDate(d.date)} · ${esc(d.note||'Pago pendiente')}</span><strong style="color:#16803c">PAGADO</strong></div>`).join('')}`:''}`;
 }
 function openDebtPayment(id){
  if(!assertDayOpen())return;
@@ -2762,7 +2750,8 @@ function createOrder(){
  if(!orderDraftItems.length)return alert("Agrega al menos un equipo al pedido.");
  const totalPieces=orderDraftItems.reduce((a,x)=>a+x.pieces,0);
  const total=orderDraftItems.reduce((a,x)=>a+x.total,0);
- if(cash()<total)return alert(`No tienes suficiente dinero en caja.\n\nDisponible: ${money(cash())}\nNecesario: ${money(total)}`);
+ const trulyAvailable=Math.max(0,cash()-currentDebt()-workerPendingAmount());
+ if(trulyAvailable<total)return alert(`No tienes suficiente dinero disponible para esta compra.\n\nDisponible real: ${money(trulyAvailable)}\nNecesario: ${money(total)}`);
  const items=orderDraftItems.map(x=>({...x,quantities:{...x.quantities}}));
  items.forEach(item=>{
   if(!item.productId){
@@ -2920,87 +2909,58 @@ function renderMovements(id,arr){
 function workerPeriod(){
  const now=new Date(today()+"T12:00:00");
  const dayN=now.getDay();
- const monday=new Date(now);
- const diff=dayN===0?6:dayN-1;
- monday.setDate(now.getDate()-diff);
- const sunday=new Date(monday);
- sunday.setDate(monday.getDate()+6);
- const wednesday=new Date(monday);
- wednesday.setDate(monday.getDate()+2);
- return {
-  start:monday.toISOString().slice(0,10),
-  commissionStart:wednesday.toISOString().slice(0,10),
-  end:sunday.toISOString().slice(0,10),
-  isSunday:dayN===0
- };
+ let start=new Date(now), end=new Date(now);
+ if(dayN===1 || dayN===2){
+  const daysBack=dayN===1?5:6;
+  start.setDate(now.getDate()-daysBack);
+  end.setDate(now.getDate()-(dayN===1?1:2));
+ }else{
+  const daysBack=dayN===0?4:dayN-3;
+  start.setDate(now.getDate()-daysBack);
+  end.setDate(start.getDate()+4);
+ }
+ return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)};
 }
-
-function workerPayData(){
+function workerPeriodData(){
  const period=workerPeriod();
- const paid=Array.isArray(state.workerPayments)
-  ? state.workerPayments.some(x=>x.periodEnd===period.end || (!x.periodEnd && x.date===period.end))
-  : false;
- let pieces=0;
- let sales=0;
+ let pieces=0,sales=0;
  Object.values(state.days||{}).forEach(d=>{
-  if(d.date>=period.commissionStart&&d.date<=period.end){
+  if(d.date>=period.start&&d.date<=period.end){
    (d.movements||[]).forEach(m=>{
     if(m.type==="sale"){
      pieces+=Number(m.quantity||m.pieces||0);
-     sales+=Number(m.amount)||0;
+     sales+=Number(m.amount||0);
     }
    });
   }
  });
- const commission=pieces*10;
- const total=1300+commission;
- return {period,paid,pieces,sales,commission,total,pendingAmount:paid?0:total};
+ return {...period,pieces,sales,total:1300+pieces*10};
 }
-
-function weekData(){
- const w=workerPayData();
- return {pieces:w.pieces,sales:w.sales};
+function workerPaymentForPeriod(period){
+ return (state.workerPayments||[]).find(x=>x.periodStart===period.start&&x.periodEnd===period.end);
 }
-
 function paidWorker(){
- return workerPayData().paid;
+ return !!workerPaymentForPeriod(workerPeriod());
 }
-
+function workerPendingAmount(){
+ const w=workerPeriodData();
+ return paidWorker()?0:w.total;
+}
 function payWorker(){
  if(!assertDayOpen())return;
- const w=workerPayData();
- if(!w.period.isSunday){
-  return alert("El pago del trabajador se realiza el domingo.");
- }
- if(w.paid){
-  return alert("El trabajador ya fue pagado por este periodo.");
- }
- if(cash()<w.total){
-  return alert(`No hay suficiente dinero en caja. Se necesitan ${money(w.total)}.`);
- }
+ const w=workerPeriodData();
+ if(workerPaymentForPeriod(w))return alert("El trabajador ya fue pagado para este periodo.");
+ if(new Date(today()+"T12:00:00").getDay()!==0)return alert("El pago del trabajador se libera los domingos.");
+ if(cash()<w.total)return alert(`No hay suficiente dinero en caja.\n\nDisponible: ${money(cash())}\nNecesario: ${money(w.total)}`);
  day().movements.push({
-  id:crypto.randomUUID(),
-  type:"worker",
-  concept:"Pago / liberación del trabajador",
-  amount:w.total,
-  pieces:w.pieces,
-  periodStart:w.period.start,
-  periodEnd:w.period.end,
-  timestamp:Date.now(),
-  time:timeNow()
+  id:crypto.randomUUID(),type:"worker",concept:"Pago trabajador",amount:w.total,
+  pieces:w.pieces,periodStart:w.start,periodEnd:w.end,timestamp:Date.now(),time:timeNow()
  });
  state.workerPayments=Array.isArray(state.workerPayments)?state.workerPayments:[];
- state.workerPayments.push({
-  date:today(),
-  amount:w.total,
-  pieces:w.pieces,
-  periodStart:w.period.start,
-  periodEnd:w.period.end,
-  timestamp:Date.now()
- });
- save();
- render();
- alert(`Pago registrado: ${money(w.total)}\nPeriodo cerrado: ${fmtDate(w.period.start)} al ${fmtDate(w.period.end)}.`);
+ state.workerPayments.push({id:crypto.randomUUID(),periodStart:w.start,periodEnd:w.end,paidAt:today(),amount:w.total,pieces:w.pieces});
+ save(); render();
+ const panel=document.getElementById("debtPanelWindow"); if(panel)renderDebtPanel();
+ alert(`Pago registrado: ${money(w.total)}\n\nPeriodo: ${fmtDate(w.start)} al ${fmtDate(w.end)}.`);
 }
 
 /* =========================
@@ -3112,7 +3072,7 @@ function statisticsData(){
 }
 function renderStatistics(){
  const e=document.getElementById("statisticsContent");if(!e)return;const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
- const ph=cyclePhase(r.elapsed,r.c.pieces); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${Math.min(50,r.c.pieces)} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
+ const ph=cyclePhase(r.elapsed,r.c.pieces); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${r.c.pieces} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
  const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed,r.c.pieces).cls} cycle-blink"></span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
@@ -3200,8 +3160,7 @@ function growthPurchaseAnalysis(){
  }).filter(x=>x.replenish>0||x.sold>0);
  items.sort((a,b)=>b.recommended-a.recommended||b.sold-a.sold||a.name.localeCompare(b.name));
  const mandatoryCost=items.reduce((a,x)=>a+x.replenish*Number(x.unitCost||0),0);
- const workerPending=workerPayData().pendingAmount;
- const availableCash=Math.max(0,Number(cash())||0),cashAfterWorker=Math.max(0,availableCash-workerPending),debt=currentDebt(),cashAfterDebt=Math.max(0,cashAfterWorker-debt),growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
+ const availableCash=Math.max(0,Number(cash())||0),debt=currentDebt(),workerPending=workerPendingAmount(),cashAfterDebt=Math.max(0,availableCash-debt-workerPending),growthCapital=Math.max(0,cashAfterDebt-mandatoryCost);
  const totalReplenishment=items.reduce((a,x)=>a+x.replenish,0),totalRecommended=totalReplenishment,totalDemand=0;
  const salesReached50=c.pieces>=50,elapsed=Math.max(0,daysBetweenKeys(c.start,c.end)+1),daysReached14=elapsed>=14,due=salesReached50||daysReached14;
  const overallPriority=due?'🟠 REVISAR PEDIDO':'🟢 CICLO EN CURSO',overallClass=due?'orange':'green';
@@ -3209,7 +3168,7 @@ function growthPurchaseAnalysis(){
  const groupedItems=Object.values(grouped),inv=currentInventoryAnalysis();
  let growthTarget=400;if(inv.pieces>=400)growthTarget=Math.ceil(inv.pieces/50)*50+50;
  const pendingOrders=(state.orders||[]).filter(o=>!o.received),pendingPieces=pendingOrders.reduce((a,o)=>a+Number(o.pieces||0),0);
- return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand:getDemandSummary(),mandatoryCost,workerPending,availableCash,cashAfterWorker,debt,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
+ return{c,items,groupedItems,due,elapsed,inv,growthTarget,demand:getDemandSummary(),mandatoryCost,availableCash,debt,workerPending,cashAfterDebt,growthCapital,pendingOrders,pendingPieces,totalRecommended,totalReplenishment,totalDemand,salesReached50,daysReached14,overallPriority,overallClass};
 }
 
 function cycleObservationsHTML(r){
@@ -3223,10 +3182,9 @@ function cycleObservationsHTML(r){
  }else notes.push('Aún no hay ventas suficientes para detectar un producto o talla de mayor movimiento.');
  const demand=r.demand||[];
  if(demand.length){const d=demand.slice().sort((a,b)=>Number(b.count||0)-Number(a.count||0))[0];if(d)notes.push(`La demanda también muestra interés por ${esc(d.name)} con ${Number(d.count||0)} solicitud${Number(d.count||0)===1?'':'es'}.`);}
- const debt=Number(r.debt)||0, workerPending=Number(r.workerPending)||0, available=Math.max(0,Number(r.availableCash)||0), afterWorker=Math.max(0,available-workerPending), mandatory=Number(r.mandatoryCost)||0;
- const afterRep=Math.max(0,afterWorker-mandatory), rent=Math.min(5500,afterRep), afterRent=Math.max(0,afterRep-rent), abono=debt?Math.min(debt,afterRent):0;
- if(workerPending>0)notes.push(`Pago del trabajador pendiente: ${money(workerPending)}. Este monto se reserva antes de considerar otros pagos, abonos o compras.`);
-  if(debt){notes.push(abono>0?`Pagos pendientes: ${money(debt)}. Después de considerar el pago del trabajador, la reposición y apartar ${money(rent)} para el arriendo, un abono prudente sería de hasta ${money(abono)}, dejando ${money(debt-abono)} pendientes.`:`Pagos pendientes: ${money(debt)}. Por ahora conviene conservar el efectivo para el pago del trabajador, operación, reposición y arriendo antes de abonar.`);}else notes.push('No hay pagos pendientes registrados actualmente.');
+ const debt=Number(r.debt)||0, available=Math.max(0,Number(r.availableCash)||0), mandatory=Number(r.mandatoryCost)||0;
+ const afterRep=Math.max(0,available-mandatory), rent=Math.min(5500,afterRep), afterRent=Math.max(0,afterRep-rent), abono=debt?Math.min(debt,afterRent):0;
+ if(debt){notes.push(abono>0?`Pagos pendientes: ${money(debt)}. Después de considerar reposición y apartar ${money(rent)} para el arriendo, un abono prudente sería de hasta ${money(abono)}, dejando ${money(debt-abono)} pendientes.`:`Pagos pendientes: ${money(debt)}. Por ahora conviene conservar el efectivo para operación, reposición y arriendo antes de abonar.`);}else notes.push('No hay pagos pendientes registrados actualmente.');
  const now=new Date(today()+"T12:00:00");let rentDate=new Date(now.getFullYear(),now.getMonth(),21);if(rentDate<now)rentDate=new Date(now.getFullYear(),now.getMonth()+1,21);const days=Math.max(0,Math.ceil((rentDate-now)/86400000));
  notes.push(`Arriendo: ${money(5500)}. Faltan ${days} día${days===1?'':'s'} para el próximo día 21. El reporte considera esta reserva antes de recomendar crecimiento.`);
  return `<div class="analysis-note"><strong>OBSERVACIONES</strong>${notes.map(n=>`<div style="margin-top:7px">• ${n}</div>`).join('')}</div>`;
@@ -3426,13 +3384,6 @@ function closeImmediateReport(){
 }
 
 function renderReports(){
- const w=weekData();
- weekPieces.textContent=w.pieces;
- weekSales.textContent=money(w.sales);
- weekCommission.textContent=money(w.pieces*10);
- workerPay.textContent=money(1300+w.pieces*10);
- workerPayButton.textContent=paidWorker()?"TRABAJADOR PAGADO":`PAGAR ${money(1300+w.pieces*10)}`;
- workerPayButton.disabled=paidWorker();workerPayButton.style.opacity=paidWorker()?".5":"1";
  renderGrowthReport();renderMarketDemandReport();renderStatistics();
  const pending=state.orders.filter(o=>!o.received).reduce((a,o)=>a+Number(o.pieces||0),0);
  investmentReport.innerHTML=`<div class="report-line"><span>Piezas vendidas esta semana</span><strong>${w.pieces}</strong></div><div class="report-line"><span>Pedidos pendientes</span><strong>${state.orders.filter(o=>!o.received).length}</strong></div><div class="report-line"><span>Piezas pendientes por recibir</span><strong>${pending}</strong></div>`;
@@ -3670,7 +3621,7 @@ function cyclePhase(elapsed,pieces=0){
 function renderHomeCycle(){
  const e=document.getElementById("homeCycleCard"); if(!e)return;
  ensureGrowthData();
- const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),sales=Math.min(50,c.pieces),ph=cyclePhase(elapsed,sales);
+ const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),sales=c.pieces,ph=cyclePhase(elapsed,sales);
  e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink"></span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div><button class="btn dark" style="width:100%;margin-top:12px" onclick="closeCurrentCycle()">CERRAR CICLO</button></div></details>`;
 }
 function refreshHomeSales(){
