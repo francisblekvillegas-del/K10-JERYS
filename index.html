@@ -1036,6 +1036,26 @@ body{background:#030006;color:var(--text)}
 
   </div>
 
+  <div class="row">
+    <div class="field"><label>16</label><input id="q16" type="number" min="0" value="0"></div>
+    <div class="field"><label>18</label><input id="q18" type="number" min="0" value="0"></div>
+  </div>
+
+  <div class="row">
+    <div class="field"><label>20</label><input id="q20" type="number" min="0" value="0"></div>
+    <div class="field"><label>22</label><input id="q22" type="number" min="0" value="0"></div>
+  </div>
+
+  <div class="row">
+    <div class="field"><label>24</label><input id="q24" type="number" min="0" value="0"></div>
+    <div class="field"><label>26</label><input id="q26" type="number" min="0" value="0"></div>
+  </div>
+
+  <div class="field">
+    <label>28</label>
+    <input id="q28" type="number" min="0" value="0">
+  </div>
+
   <div class="modal-buttons">
 
     <button class="btn light"
@@ -1220,6 +1240,13 @@ body{background:#030006;color:var(--text)}
     <div class="size-input"><label>2XL</label><input id="o2XL" type="number" min="0" value="0"></div>
     <div class="size-input"><label>3XL</label><input id="o3XL" type="number" min="0" value="0"></div>
     <div class="size-input"><label>4XL</label><input id="o4XL" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>16</label><input id="o16" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>18</label><input id="o18" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>20</label><input id="o20" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>22</label><input id="o22" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>24</label><input id="o24" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>26</label><input id="o26" type="number" min="0" value="0"></div>
+    <div class="size-input"><label>28</label><input id="o28" type="number" min="0" value="0"></div>
   </div>
 
   <button class="btn light" style="width:100%;margin-top:10px" onclick="addOrderItemToDraft()">＋ AGREGAR AL PEDIDO</button>
@@ -1358,7 +1385,7 @@ body{background:#030006;color:var(--text)}
 
 const KEY="K10_CONTROL_PRUEBA";
 
-const SIZES=["S","M","L","XL","2XL","3XL","4XL"];
+const SIZES=["S","M","L","XL","2XL","3XL","4XL","16","18","20","22","24","26","28"];
 
 let state=JSON.parse(localStorage.getItem(KEY)||"null");
 
