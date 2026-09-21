@@ -407,7 +407,7 @@ header{padding:20px 18px 10px}
 .priority-dot{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;white-space:nowrap}.priority-dot.red{background:#ffe1e1;color:#b42318}.priority-dot.orange{background:#fff0df;color:#b45309}.priority-dot.yellow{background:#fff7cc;color:#8a5a00}.priority-dot.green{background:#e8f7ec;color:#187a3d}.cycle-alert.red{background:#ffe1e1;color:#b42318;animation:k10Pulse 1.5s infinite}.cycle-alert.orange{background:#fff0df;color:#b45309}.cycle-alert.yellow{background:#fff7cc;color:#8a5a00}.cycle-alert.green{background:#e8f7ec;color:#187a3d}
 .home-cycle-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;cursor:pointer}.home-cycle-title{font-weight:900}.home-cycle-open{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f7ec;color:#187a3d}.cycle-progress-wrap{padding:0 16px 16px}.cycle-progress-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;margin-bottom:8px}.cycle-progress-track{height:10px;border-radius:999px;background:#eee;overflow:hidden}.cycle-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}.cycle-phase-red{background:#d92d20}.cycle-phase-yellow{background:#eab308}.cycle-phase-orange{background:#f97316}.cycle-phase-green{background:#16a34a}.cycle-indicator{display:inline-flex;width:12px;height:12px;border-radius:50%;vertical-align:-1px;border:0;box-shadow:none}.cycle-indicator.cycle-phase-red{background:#d92d20 !important}.cycle-indicator.cycle-phase-yellow{background:#eab308 !important}.cycle-indicator.cycle-phase-orange{background:#f97316 !important}.cycle-indicator.cycle-phase-green{background:#16a34a !important}.cycle-blink{animation:k10CycleBlink 1.15s infinite}.home-cycle-detail{padding:0 16px 16px}.home-cycle-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.home-cycle-metric{background:#f7f7f8;border-radius:12px;padding:10px}.home-cycle-metric span{display:block;color:#777;font-size:10px;font-weight:800}.home-cycle-metric strong{font-size:18px}@keyframes k10CycleBlink{0%,100%{opacity:1}50%{opacity:.58}}
 @keyframes k10Pulse{0%,100%{opacity:1}50%{opacity:.55}}
-.login-transition{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:#000;opacity:0;transition:opacity .18s ease}.login-transition.show{display:flex;opacity:1}.login-transition-inner{display:flex;align-items:center;justify-content:center;transform:translateY(24px)}.login-transition img{width:150px;height:150px;object-fit:contain;border-radius:18px;animation:k10LoginLogo 1s ease-in-out both}@keyframes k10LoginLogo{0%{transform:scale(.78);opacity:.25}35%{transform:scale(1.08);opacity:1}60%{transform:scale(.96);opacity:.72}78%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+.login-transition{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;background:rgba(63,63,63,.97);opacity:0;transition:opacity .18s ease}.login-transition.show{display:flex;opacity:1}.login-transition img{width:92px;height:92px;object-fit:contain;border-radius:18px;animation:k10LoginLogo 1s ease-in-out both}.login-transition .login-transition-logo{font-size:16px;font-weight:900;letter-spacing:1.2px;color:#fff;margin-top:12px;text-align:center}.login-transition-inner{display:flex;flex-direction:column;align-items:center;justify-content:center}@keyframes k10LoginLogo{0%{transform:scale(.86);opacity:.35}45%{transform:scale(1);opacity:1}100%{transform:scale(1.02);opacity:1}}
 </style>
 
 </head>
@@ -455,7 +455,7 @@ header{padding:20px 18px 10px}
 
 </div>
 
-<div id="loginTransition" class="login-transition" aria-hidden="true"><div class="login-transition-inner"><img id="loginTransitionLogo" alt="K10 logo"></div></div>
+<div id="loginTransition" class="login-transition" aria-hidden="true"><div class="login-transition-inner"><img id="loginTransitionLogo" alt="K10 CONTROL logo"><div class="login-transition-logo">K10 CONTROL</div></div></div>
 
 <!-- CONFIGURACIÓN INICIAL -->
 
@@ -637,6 +637,10 @@ header{padding:20px 18px 10px}
 
   <div id="inventoryList"></div>
   <div id="inventoryTotalSummary" class="card" style="margin-top:14px;padding:14px"></div>
+  <details class="report-card collapsible" style="margin-top:14px">
+    <summary><span>📦 Inventario histórico</span></summary>
+    <div class="collapse-body"><div id="historicalInventoryList"></div></div>
+  </details>
 
 </section>
 
@@ -752,7 +756,7 @@ header{padding:20px 18px 10px}
     </div>
   </details>
   <details class="report-card collapsible">
-    <summary><span>📋 Resumen</span></summary>
+    <summary><span>📋 Resumen mensual</span></summary>
     <div class="collapse-body"><div id="investmentReport"></div></div>
   </details>
   <details class="report-card collapsible">
@@ -1553,6 +1557,13 @@ function finishSetup(){
  state.growthCycle.history=Array.isArray(state.growthCycle.history)?state.growthCycle.history:[];
  delete state.growthCycle.lastOrderDate;
  state.products.forEach(p=>{p.initialStock=JSON.parse(JSON.stringify(p.stock||{}));});
+ state.historicalInitialInventory=state.products.map(p=>({
+  id:p.id,
+  name:p.name,
+  price:Number(p.price)||0,
+  cost:Number(p.cost)||0,
+  stock:JSON.parse(JSON.stringify(p.stock||{}))
+ }));
  state.initialInventoryPieces=state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(p.stock[s]||0),0),0);
  state.registeredPieces=state.initialInventoryPieces;
  if(!state.days)state.days={};
@@ -2193,6 +2204,39 @@ function ensureRegisteredPieces(){
  save();
 }
 
+function ensureHistoricalInventory(){
+ if(!state)return false;
+ if(Array.isArray(state.historicalInitialInventory)&&state.historicalInitialInventory.length)return false;
+ const historical=(state.products||[]).filter(p=>p && p.initialStock && typeof p.initialStock==="object").map(p=>({
+  id:p.id,
+  name:p.name,
+  price:Number(p.price)||0,
+  cost:Number(p.cost)||0,
+  stock:JSON.parse(JSON.stringify(p.initialStock||{}))
+ }));
+ if(!historical.length)return false;
+ state.historicalInitialInventory=historical;
+ save();
+ return true;
+}
+
+function renderHistoricalInventory(){
+ const e=document.getElementById("historicalInventoryList");
+ if(!e)return;
+ ensureHistoricalInventory();
+ const list=Array.isArray(state.historicalInitialInventory)?state.historicalInitialInventory:[];
+ if(!list.length){
+  e.innerHTML='<div class="analysis-note">El inventario histórico aparecerá cuando se registre el inventario inicial de la sesión.</div>';
+  return;
+ }
+ const total=list.reduce((a,p)=>a+SIZES.reduce((b,s)=>b+(Number(p.stock?.[s])||0),0),0);
+ e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>INVENTARIO CON EL QUE SE INICIÓ LA SESIÓN</strong><br>${total} piezas registradas como inventario inicial. Este registro es solo de consulta y no cambia con las ventas, pedidos o movimientos posteriores.</div>${list.map(p=>{
+  const pieces=SIZES.reduce((a,s)=>a+(Number(p.stock?.[s])||0),0);
+  const sizes=SIZES.map(s=>{const q=Number(p.stock?.[s])||0;return q?`<span style="display:inline-block;margin:3px 6px 0 0;padding:5px 8px;background:#f2f2f2;border-radius:8px;font-size:12px"><strong>${esc(s)}</strong> ${q}</span>`:''}).join('');
+  return `<div class="card" style="margin:8px 0;padding:12px 14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><strong>${esc(p.name)}</strong><strong>${pieces} piezas</strong></div><div style="margin-top:7px">${sizes||'<span style="font-size:12px;color:#777">Sin piezas registradas.</span>'}</div></div>`;
+ }).join('')}`;
+}
+
 function renderInventory(){
  const e=document.getElementById("inventoryList");
  const summary=document.getElementById("inventoryTotalSummary");
@@ -2216,6 +2260,7 @@ function renderInventory(){
  const currentTotal=totalPieces();
  const expected=Math.max(0,registered-soldTotal);
  if(summary)summary.innerHTML=`<div style="font-weight:900;margin-bottom:10px">RESUMEN DEL INVENTARIO</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS REGISTRADAS</div><strong style="font-size:20px">${registered}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">PIEZAS VENDIDAS</div><strong style="font-size:20px">${soldTotal}</strong></div><div><div style="font-size:11px;color:#777;font-weight:800">DEBERÍA HABER</div><strong style="font-size:20px">${expected}</strong><div style="font-size:11px;color:#777">Actualmente hay ${currentTotal}</div></div></div>`;
+ renderHistoricalInventory();
 }
 
 function openEditProduct(id){
@@ -3032,6 +3077,9 @@ function cycleSales(){
  });
  return{start,end,sales,pieces:sales.reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0),schedule:k10CycleSchedule(start)};
 }
+function cyclePiecesCount(){
+ return Number(cycleSales().pieces)||0;
+}
 
 function getDemandSummary(){
  const map={};
@@ -3070,34 +3118,63 @@ function statisticsData(){
 }
 function renderStatistics(){
  const e=document.getElementById("statisticsContent");if(!e)return;const d=statisticsData();const r=growthPurchaseAnalysis();r.cycleNumber=Number(state.growthCycle.cycle)||1;
- const ph=cyclePhase(r.elapsed,r.c.pieces); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${r.c.pieces} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
+ const ph=cyclePhase(r.elapsed,cyclePiecesCount()); const cycleSummary=r.due?cycleReportHTML(r,"RESUMEN DEL CICLO"):"<div class=\"analysis-note\"><strong>RESUMEN DEL CICLO</strong><br>Aquí aparecerá el resumen del ciclo y lo que debes comprar exactamente cuando el ciclo termine.</div>"; const cycleBlock=`<div class="home-cycle-detail" style="padding:0"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${r.elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${cyclePiecesCount()} / 50</strong></div></div><div style="margin-top:14px">${cycleSummary}</div></div>`;
  const list=(arr,limit=7)=>arr.slice(0,limit).map(([n,v],i)=>`<div class="report-line"><span><strong>${i+1}.</strong> ${esc(n||"Sin talla")}</span><strong>${v}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  const prof=d.profitability.slice(0,10).map((x,i)=>`<div class="report-line"><div><strong>${i+1}. ${esc(x.name)}</strong><br><small>${x.pieces} piezas · Ventas ${money(x.revenue)} · Margen ${(x.margin*100).toFixed(1)}%</small></div><strong>${money(x.gross)}</strong></div>`).join("")||'<div class="analysis-note">Sin ventas registradas.</div>';
  e.innerHTML=`<details class="report-card collapsible"><summary><span><span class="cycle-indicator cycle-phase-${cyclePhase(r.elapsed,r.c.pieces).cls} cycle-blink"></span> CICLOS EN CURSO</span><span class="summary-right">+</span></summary><div class="collapse-body">${cycleBlock}</div></details><details class="report-card collapsible"><summary><span>🏆 Equipos más vendidos</span></summary><div class="collapse-body">${list(d.teams,10)}</div></details><details class="report-card collapsible"><summary><span>👕 Tallas más vendidas</span></summary><div class="collapse-body">${list(d.sizes,7)}</div></details><details class="report-card collapsible"><summary><span>📅 Días del mes con más ventas</span></summary><div class="collapse-body">${list(d.dates,7)}</div></details><details class="report-card collapsible"><summary><span>📆 Días de la semana con más ventas</span></summary><div class="collapse-body">${list(d.weekdays,7)}</div></details><details class="report-card collapsible"><summary><span>📈 Promedio de ventas por día</span></summary><div class="collapse-body"><div class="report-total">${d.avg.toFixed(1)} piezas</div><div class="analysis-note">Promedio calculado sobre los días registrados en K10 CONTROL.</div></div></details><details class="report-card collapsible"><summary><span>💰 Rentabilidad por equipo</span></summary><div class="collapse-body">${prof}</div></details>`;
 }
 
-function monthlyFinancialAnalysis(){
- const now=new Date(today()+"T12:00:00");
- const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
- const start=monthStart.toISOString().slice(0,10);
- const movements=allMovements().filter(m=>m.date>=start && m.date<=today());
+function monthlyPeriodForDate(dateKey){
+ const d=new Date((dateKey||today())+"T12:00:00");
+ let y=d.getFullYear(),m=d.getMonth();
+ if(d.getDate()<21)m--;
+ const startDate=new Date(y,m,21);
+ const endDate=new Date(y,m+1,20);
+ const key=d=>d.toISOString().slice(0,10);
+ return{start:key(startDate),end:key(endDate)};
+}
+function monthlyFinancialAnalysis(period){
+ const p=period||monthlyPeriodForDate(today());
+ const end=p.end>today()?today():p.end;
+ const movements=allMovements().filter(m=>m.date>=p.start&&m.date<=end);
  const sales=movements.filter(m=>m.type==="sale");
- const expenses=movements.filter(m=>m.type==="expense");
- const workers=movements.filter(m=>m.type==="worker");
- const withdrawals=movements.filter(m=>m.type==="withdrawal");
  const revenue=sales.reduce((a,m)=>a+Number(m.amount||0),0);
  const cogs=sales.reduce((a,m)=>{
-   const p=state.products.find(x=>x.id===m.productId);
-   const unitCost=m.unitCost!=null?Number(m.unitCost):Number(p?.cost)||0;
-   return a+unitCost*Number(m.quantity||m.pieces||0);
+  const product=state.products.find(x=>x.id===m.productId);
+  const unitCost=m.unitCost!=null?Number(m.unitCost):Number(product?.cost)||0;
+  return a+unitCost*Number(m.quantity||m.pieces||0);
  },0);
+ const worker=movements.filter(m=>m.type==="worker").reduce((a,m)=>a+Number(m.amount||0),0);
+ const rent=5500;
+ const internet=350;
  const gross=revenue-cogs;
- const worker=workers.reduce((a,m)=>a+Number(m.amount||0),0);
- const other=expenses.reduce((a,m)=>a+Number(m.amount||0),0);
- const withdrawalTotal=withdrawals.reduce((a,m)=>a+Number(m.amount||0),0);
- const netAfterWithdrawals=gross-worker-other-withdrawalTotal;
- return{start,revenue,cogs,gross,worker,other,withdrawals:withdrawalTotal,netAfterWithdrawals};
+ const net=gross-worker-rent-internet;
+ const pieces=sales.reduce((a,m)=>a+Number(m.quantity||m.pieces||0),0);
+ return{start:p.start,end:p.end,through:end,revenue,cogs,gross,worker,rent,internet,net,pieces};
 }
+function monthlySummaryHTML(){
+ const current=monthlyPeriodForDate(today());
+ const rows=[];
+ const first=state.startDate||current.start;
+ let cursor=monthlyPeriodForDate(first).start;
+ let safety=0;
+ while(cursor<=current.start&&safety<120){
+  const period=monthlyPeriodForDate(cursor);
+  if(period.end>=first)rows.push(period);
+  const next=new Date(period.start+"T12:00:00");next.setMonth(next.getMonth()+1);
+  cursor=next.toISOString().slice(0,10);
+  safety++;
+ }
+ const periods=rows.length?rows: [current];
+ const ordered=periods.slice().reverse();
+ const cards=ordered.map((period,i)=>{
+  const r=monthlyFinancialAnalysis(period);
+  const isCurrent=period.start===current.start;
+  return `<div class="card" style="margin:8px 0;padding:13px 14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><strong>${isCurrent?'PERIODO ACTUAL':'RESUMEN MENSUAL'}</strong><strong>${fmtDate(r.start)} al ${fmtDate(r.end)}</strong></div><div class="report-line"><span>Ventas (${r.pieces} piezas)</span><strong>${money(r.revenue)}</strong></div><div class="report-line"><span>Precio de compra de las vendidas</span><strong>− ${money(r.cogs)}</strong></div><div class="report-line"><span>Trabajador + comisiones</span><strong>− ${money(r.worker)}</strong></div><div class="report-line"><span>Arriendo</span><strong>− ${money(r.rent)}</strong></div><div class="report-line"><span>Internet</span><strong>− ${money(r.internet)}</strong></div><div class="report-total" style="margin-top:8px">Ganancia del periodo: <span>${money(r.net)}</span></div></div>`;
+ }).join('');
+ return `<div class="analysis-note" style="margin-top:0"><strong>RESUMEN MENSUAL</strong><br>Periodo de trabajo: del día 21 al día 20. Se calcula con las ventas reales, el costo de compra de las playeras vendidas, trabajador + comisiones, $5,500 de arriendo y $350 de internet.</div>${cards}`;
+}
+
 function pendingOrderQuantities(){
  const pending={};
  (state.orders||[]).filter(o=>!o.received).forEach(o=>{
@@ -3229,11 +3306,15 @@ function renderCycleHistory(){
    });
   }else{
    (h.groupedItems||[]).forEach(g=>{
-    const key=String(g.name||"").toLowerCase();
-    if(!grouped[key])grouped[key]={name:g.name,items:{}};
+    const name=String(g.name||"Sin equipo").trim()||"Sin equipo";
+    const key=name.toLowerCase();
+    if(!grouped[key])grouped[key]={name,items:{}};
     (g.items||[]).forEach(x=>{
      const sold=Number(x.sold||0);
-     if(sold>0){const size=normalizeReportSize(x.size||"Sin talla");grouped[key].items[size]=(grouped[key].items[size]||0)+sold;}
+     if(sold>0){
+      const size=normalizeReportSize(x.size||"Sin talla");
+      grouped[key].items[size]=(grouped[key].items[size]||0)+sold;
+     }
     });
    });
   }
@@ -3246,7 +3327,7 @@ function renderCycleHistory(){
    }).map(([size,q])=>`${esc(size)}: <strong>${q}</strong>`).join(" · ");
    return `<div class="card" style="margin:8px 0;padding:12px 14px"><strong>${esc(g.name)}</strong><div style="margin-top:7px;font-size:12px;color:#555">${sizes}</div><div style="margin-top:6px;font-size:12px"><strong>Total vendido: ${g.total}</strong></div></div>`;
   }).join("");
-  return `<details class="report-card collapsible" style="margin-top:10px"><summary><span>📋 CICLO ${h.cycle} — ${esc(h.trigger)}</span><span class="summary-right">${calculatedTotal} piezas</span></summary><div class="collapse-body"><div class="analysis-note">${fmtDate(h.start)} al ${fmtDate(h.end)}<br><strong>${calculatedTotal} piezas vendidas en este ciclo</strong></div><div class="analysis-note"><strong>VENTAS DEL CICLO POR EQUIPO Y TALLA</strong></div>${groups||'<div class="analysis-note">No hubo ventas registradas.</div>'}</div></details>`;
+  return `<details class="report-card collapsible" style="margin-top:10px"><summary><span>📋 CICLO ${h.cycle} — ${esc(h.trigger)}</span><span class="summary-right">${calculatedTotal} piezas</span></summary><div class="collapse-body"><div class="analysis-note">${fmtDate(h.start)} al ${fmtDate(h.end)}<br><strong>${calculatedTotal} piezas vendidas en este ciclo</strong></div><div class="analysis-note"><strong>PIEZAS VENDIDAS POR EQUIPO Y TALLA</strong></div>${groups||'<div class="analysis-note">No hubo ventas registradas.</div>'}</div></details>`;
  }).join(""):'<div class="analysis-note">Todavía no hay ciclos cerrados.</div>';
 }
 
@@ -3410,8 +3491,8 @@ function closeImmediateReport(){
 
 function renderReports(){
  renderGrowthReport();renderMarketDemandReport();renderStatistics();
- const pending=state.orders.filter(o=>!o.received).reduce((a,o)=>a+Number(o.pieces||0),0);
- investmentReport.innerHTML=`<div class="report-line"><span>Piezas vendidas esta semana</span><strong>${w.pieces}</strong></div><div class="report-line"><span>Pedidos pendientes</span><strong>${state.orders.filter(o=>!o.received).length}</strong></div><div class="report-line"><span>Piezas pendientes por recibir</span><strong>${pending}</strong></div>`;
+ const report=document.getElementById("investmentReport");
+ if(report)report.innerHTML=monthlySummaryHTML();
 }
 
 function dateKeyFromStart(start,n){
@@ -3646,7 +3727,7 @@ function cyclePhase(elapsed,pieces=0){
 function renderHomeCycle(){
  const e=document.getElementById("homeCycleCard"); if(!e)return;
  ensureGrowthData();
- const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),sales=c.pieces,ph=cyclePhase(elapsed,sales);
+ const c=cycleSales(),elapsed=Math.max(1,Math.min(14,daysBetweenKeys(c.start,today())+1)),sales=cyclePiecesCount(),ph=cyclePhase(elapsed,sales);
  e.innerHTML=`<details open id="homeCycleDetails"><summary class="home-cycle-summary"><span class="home-cycle-title"><span class="cycle-indicator cycle-phase-${ph.cls} cycle-blink"></span> CICLO ACTUAL</span><span class="home-cycle-open">ABIERTO</span></summary><div class="home-cycle-detail"><div class="cycle-progress-meta"><span class="cycle-blink">${ph.label}</span><span>${ph.pct.toFixed(0)}%</span></div><div class="cycle-progress-track"><div class="cycle-progress-bar cycle-phase-${ph.cls} cycle-blink" style="width:${ph.pct}%"></div></div><div class="home-cycle-grid" style="margin-top:10px"><div class="home-cycle-metric"><span>TIEMPO</span><strong>Día ${elapsed} de 14</strong></div><div class="home-cycle-metric"><span>VENTAS</span><strong>${sales} / 50</strong></div></div><button class="btn dark" style="width:100%;margin-top:12px" onclick="closeCurrentCycle()">CERRAR CICLO</button></div></details>`;
 }
 function refreshHomeSales(){
