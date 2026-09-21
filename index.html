@@ -1002,8 +1002,17 @@ body{background:#030006;color:var(--text)}
 
   </div>
 
+  <div class="field">
+    <label>TIPO DE EQUIPO</label>
+    <select id="productCategory" onchange="toggleProductChildSizes()">
+      <option value="adult">Adulto / normal</option>
+      <option value="child">Niño</option>
+    </select>
+  </div>
+
   <div class="section-title">Piezas</div>
 
+  <div id="productAdultSizes">
   <div class="row">
 
     <div class="field"><label>S</label><input id="qS" type="number" min="0" value="0"></div>
@@ -1036,6 +1045,9 @@ body{background:#030006;color:var(--text)}
 
   </div>
 
+  </div>
+
+  <div id="productChildSizes" style="display:none">
   <div class="row">
     <div class="field"><label>16</label><input id="q16" type="number" min="0" value="0"></div>
     <div class="field"><label>18</label><input id="q18" type="number" min="0" value="0"></div>
@@ -1054,6 +1066,7 @@ body{background:#030006;color:var(--text)}
   <div class="field">
     <label>28</label>
     <input id="q28" type="number" min="0" value="0">
+  </div>
   </div>
 
   <div class="modal-buttons">
@@ -1224,6 +1237,7 @@ body{background:#030006;color:var(--text)}
   </div>
   <div id="newTeamBox" style="display:none">
     <div class="field"><label>NOMBRE DEL NUEVO EQUIPO</label><input id="orderNewName" placeholder="Ej. Inter Miami visitante"></div>
+    <div class="field"><label>TIPO DE EQUIPO</label><select id="orderNewCategory" onchange="toggleOrderChildSizes()"><option value="adult">Adulto / normal</option><option value="child">Niño</option></select></div>
   </div>
 
   <div class="row">
@@ -1233,6 +1247,7 @@ body{background:#030006;color:var(--text)}
 
   <div class="section-title">Tallas y cantidades</div>
   <div class="order-size-grid">
+    <div id="orderAdultSizes" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
     <div class="size-input"><label>S</label><input id="oS" type="number" min="0" value="0"></div>
     <div class="size-input"><label>M</label><input id="oM" type="number" min="0" value="0"></div>
     <div class="size-input"><label>L</label><input id="oL" type="number" min="0" value="0"></div>
@@ -1240,6 +1255,8 @@ body{background:#030006;color:var(--text)}
     <div class="size-input"><label>2XL</label><input id="o2XL" type="number" min="0" value="0"></div>
     <div class="size-input"><label>3XL</label><input id="o3XL" type="number" min="0" value="0"></div>
     <div class="size-input"><label>4XL</label><input id="o4XL" type="number" min="0" value="0"></div>
+    </div>
+    <div id="orderChildSizes" style="display:none;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
     <div class="size-input"><label>16</label><input id="o16" type="number" min="0" value="0"></div>
     <div class="size-input"><label>18</label><input id="o18" type="number" min="0" value="0"></div>
     <div class="size-input"><label>20</label><input id="o20" type="number" min="0" value="0"></div>
@@ -1247,6 +1264,7 @@ body{background:#030006;color:var(--text)}
     <div class="size-input"><label>24</label><input id="o24" type="number" min="0" value="0"></div>
     <div class="size-input"><label>26</label><input id="o26" type="number" min="0" value="0"></div>
     <div class="size-input"><label>28</label><input id="o28" type="number" min="0" value="0"></div>
+    </div>
   </div>
 
   <button class="btn light" style="width:100%;margin-top:10px" onclick="addOrderItemToDraft()">＋ AGREGAR AL PEDIDO</button>
@@ -1385,7 +1403,10 @@ body{background:#030006;color:var(--text)}
 
 const KEY="K10_CONTROL_PRUEBA";
 
-const SIZES=["S","M","L","XL","2XL","3XL","4XL","16","18","20","22","24","26","28"];
+const SIZES=["S","M","L","XL","2XL","3XL","4XL"];
+const CHILD_SIZES=["16","18","20","22","24","26","28"];
+const ALL_SIZES=[...SIZES,...CHILD_SIZES];
+function productSizes(p){return p?.category==="child"?CHILD_SIZES:SIZES;}
 
 let state=JSON.parse(localStorage.getItem(KEY)||"null");
 
@@ -1555,7 +1576,7 @@ function renderSetup(){
 
       <div style="font-size:12px;color:#777;margin-top:4px">
 
-       ${money(p.price)} · ${SIZES.reduce((a,s)=>a+(p.stock[s]||0),0)} piezas
+       ${money(p.price)} · ${productSizes(p).reduce((a,s)=>a+(p.stock[s]||0),0)} piezas
 
       </div>
 
@@ -1608,7 +1629,7 @@ function finishSetup(){
   cost:Number(p.cost)||0,
   stock:JSON.parse(JSON.stringify(p.stock||{}))
  }));
- state.initialInventoryPieces=state.products.reduce((t,p)=>t+SIZES.reduce((a,s)=>a+(p.stock[s]||0),0),0);
+ state.initialInventoryPieces=state.products.reduce((t,p)=>t+productSizes(p).reduce((a,s)=>a+(p.stock[s]||0),0),0);
  state.registeredPieces=state.initialInventoryPieces;
  if(!state.days)state.days={};
  if(!state.days[d])state.days[d]={date:d,closed:false,movements:[]};
@@ -1617,6 +1638,23 @@ function finishSetup(){
  document.getElementById("app").style.display="block";
  render();
 }
+function toggleProductChildSizes(){
+ const child=document.getElementById("productCategory")?.value==="child";
+ const adultBox=document.getElementById("productAdultSizes");
+ const childBox=document.getElementById("productChildSizes");
+ if(adultBox)adultBox.style.display=child?"none":"block";
+ if(childBox)childBox.style.display=child?"block":"none";
+}
+function toggleOrderChildSizes(){
+ let child=false;
+ if(orderType==="new") child=document.getElementById("orderNewCategory")?.value==="child";
+ else { const p=state?.products?.find(x=>x.id===document.getElementById("orderExistingProduct")?.value); child=p?.category==="child"; }
+ const adultBox=document.getElementById("orderAdultSizes");
+ const childBox=document.getElementById("orderChildSizes");
+ if(adultBox)adultBox.style.display=child?"none":"grid";
+ if(childBox)childBox.style.display=child?"grid":"none";
+}
+
 function openProductModal(fromSetup=false){
 
  setupMode=fromSetup;
@@ -1626,8 +1664,10 @@ function openProductModal(fromSetup=false){
  document.getElementById("productPrice").value="";
 
  document.getElementById("productCost").value="";
+ document.getElementById("productCategory").value="adult";
+ toggleProductChildSizes();
 
- SIZES.forEach(s=>{
+ ALL_SIZES.forEach(s=>{
 
   document.getElementById("q"+s).value=0;
 
@@ -1651,9 +1691,9 @@ function saveProduct(){
 
  }
 
+ const category=document.getElementById("productCategory").value==="child"?"child":"adult";
  const stock={};
-
- SIZES.forEach(s=>{
+ ALL_SIZES.forEach(s=>{
 
   stock[s]=Math.max(
 
@@ -2125,7 +2165,7 @@ function openSaleModal(){
  if(!assertDayOpen())return;
  const available=state.products.filter(p=>
 
-  SIZES.some(s=>(p.stock[s]||0)>0)
+  productSizes(p).some(s=>(p.stock[s]||0)>0)
 
  );
 
@@ -2146,8 +2186,13 @@ function openSaleModal(){
   </option>`
 
  ).join("");
+ saleProduct.onchange=()=>{
+  const p=state.products.find(x=>x.id===saleProduct.value);
+  saleSize.innerHTML=productSizes(p).map(s=>`<option>${s}</option>`).join("");
+  salePrice.value=p?.price||0;
+ };
 
- saleSize.innerHTML=SIZES
+ saleSize.innerHTML=productSizes(state.products.find(p=>p.id===saleProduct.value))
 
  .map(s=>`<option>${s}</option>`)
 
@@ -2273,10 +2318,10 @@ function renderHistoricalInventory(){
   e.innerHTML='<div class="analysis-note">El inventario histórico aparecerá cuando se registre el inventario inicial de la sesión.</div>';
   return;
  }
- const total=list.reduce((a,p)=>a+SIZES.reduce((b,s)=>b+(Number(p.stock?.[s])||0),0),0);
+ const total=list.reduce((a,p)=>a+productSizes(p).reduce((b,s)=>b+(Number(p.stock?.[s])||0),0),0);
  e.innerHTML=`<div class="analysis-note" style="margin-top:0"><strong>INVENTARIO CON EL QUE SE INICIÓ LA SESIÓN</strong><br>${total} piezas registradas como inventario inicial. Este registro es solo de consulta y no cambia con las ventas, pedidos o movimientos posteriores.</div>${list.map(p=>{
-  const pieces=SIZES.reduce((a,s)=>a+(Number(p.stock?.[s])||0),0);
-  const sizes=SIZES.map(s=>{const q=Number(p.stock?.[s])||0;return q?`<span style="display:inline-block;margin:3px 6px 0 0;padding:5px 8px;background:#f2f2f2;border-radius:8px;font-size:12px"><strong>${esc(s)}</strong> ${q}</span>`:''}).join('');
+  const pieces=productSizes(p).reduce((a,s)=>a+(Number(p.stock?.[s])||0),0);
+  const sizes=productSizes(p).map(s=>{const q=Number(p.stock?.[s])||0;return q?`<span style="display:inline-block;margin:3px 6px 0 0;padding:5px 8px;background:#f2f2f2;border-radius:8px;font-size:12px"><strong>${esc(s)}</strong> ${q}</span>`:''}).join('');
   return `<div class="card" style="margin:8px 0;padding:12px 14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><strong>${esc(p.name)}</strong><strong>${pieces} piezas</strong></div><div style="margin-top:7px">${sizes||'<span style="font-size:12px;color:#777">Sin piezas registradas.</span>'}</div></div>`;
  }).join('')}`;
 }
@@ -2295,7 +2340,7 @@ function renderInventory(){
     <div><div class="product-name">${esc(p.name)}</div><div class="product-info">Venta ${money(p.price)} · Costo ${money(p.cost)}</div></div>
     <div style="display:flex;align-items:center;gap:8px"><strong>${SIZES.reduce((a,s)=>a+(p.stock[s]||0),0)}</strong><button class="btn light" style="padding:7px 9px;font-size:11px" onclick="openEditProduct('${p.id}')">EDITAR PRECIOS</button></div>
    </div>
-   <div class="sizes">${SIZES.map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
+   <div class="sizes">${productSizes(p).map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
  `).join("");
  ensureRegisteredPieces();
@@ -2430,7 +2475,7 @@ function renderAdjustSizes(){
 
   <div class="adjust-list">
 
-   ${SIZES.map(s=>`
+   ${productSizes(p).map(s=>`
 
     <div class="adjust-row">
 
@@ -2494,7 +2539,7 @@ function saveAdjustment(){
 
  let changes=[];
 
- SIZES.forEach(s=>{
+ productSizes(p).forEach(s=>{
 
   const amount=Number(
 
@@ -2524,7 +2569,7 @@ function saveAdjustment(){
 
  }
 
- SIZES.forEach(s=>{
+ productSizes(p).forEach(s=>{
 
   const amount=Number(
 
@@ -2590,7 +2635,7 @@ function ensureApartados(){
 
 function apartadoQuantities(){
  const q={};
- SIZES.forEach(s=>q[s]=0);
+ ALL_SIZES.forEach(s=>q[s]=0);
  const size=document.getElementById("apartadoSize")?.value;
  const qty=Math.max(0,Number(document.getElementById("apartadoQty")?.value)||0);
  if(size)q[size]=qty;
@@ -2616,7 +2661,7 @@ function renderApartadoSizes(){
  const p=state.products.find(x=>x.id===document.getElementById("apartadoProduct")?.value);
  const sizeEl=document.getElementById("apartadoSize");
  if(!p||!sizeEl)return;
- const available=SIZES.filter(s=>(p.stock[s]||0)>0);
+ const available=productSizes(p).filter(s=>(p.stock[s]||0)>0);
  sizeEl.innerHTML=available.length
    ? available.map(s=>`<option value="${s}">${s} — Disponible: ${p.stock[s]||0}</option>`).join("")
    : '<option value="">Sin tallas disponibles</option>';
@@ -2660,10 +2705,10 @@ function createApartado(){
  if(pieces<=0)return alert("Agrega al menos una pieza.");
  if(price<=0)return alert("Completa el precio de venta.");
  if(deposit<0||deposit>total)return alert("El anticipo no puede ser mayor al total.");
- for(const size of SIZES){
+ for(const size of productSizes(p)){
   if((q[size]||0)>(p.stock[size]||0))return alert(`No hay suficientes piezas talla ${size}. Disponible: ${p.stock[size]||0}.`);
  }
- SIZES.forEach(size=>{p.stock[size]=(p.stock[size]||0)-(q[size]||0);});
+ productSizes(p).forEach(size=>{p.stock[size]=(p.stock[size]||0)-(q[size]||0);});
  const a={id:crypto.randomUUID(),number:state.apartados.length+1,date:today(),status:"pending",customerName:customer,productId:p.id,productName:p.name,price,quantities:q,pieces,total,deposit,remaining:total-deposit};
  state.apartados.push(a);
  if(deposit>0){
@@ -2707,7 +2752,7 @@ function renderApartados(){
  e.innerHTML=state.apartados.slice().reverse().map(a=>{
   const status=a.status==="paid"?'PAGADO':a.status==="released"?'LIBERADO':'PENDIENTE';
   const cls=a.status==="paid"?'received':a.status==="released"?'':'pending';
-  return `<div class="order-card"><div class="order-head"><div><div class="order-name">Apartado #${String(a.number).padStart(3,"0")}</div><div class="order-meta"><strong>${esc(a.customerName||"Sin nombre")}</strong></div><div class="order-meta">${esc(a.productName)} · ${fmtDate(a.date)}</div></div><span class="status ${cls}">${status}</span></div><div class="order-lines">${SIZES.filter(s=>a.quantities[s]).map(s=>`${s}: ${a.quantities[s]} piezas`).join(" · ")}</div><div class="order-meta">Total: ${money(a.total)} · Anticipo: ${money(a.deposit)} · Resta: ${money(a.remaining||0)}</div>${a.status==="pending"?`<div class="modal-buttons" style="margin-top:12px"><button class="btn green" onclick="finishApartado('${a.id}')">TERMINAR DE PAGAR</button><button class="btn light" onclick="releaseApartado('${a.id}')">LIBERAR</button></div>`:''}</div>`;
+  return `<div class="order-card"><div class="order-head"><div><div class="order-name">Apartado #${String(a.number).padStart(3,"0")}</div><div class="order-meta"><strong>${esc(a.customerName||"Sin nombre")}</strong></div><div class="order-meta">${esc(a.productName)} · ${fmtDate(a.date)}</div></div><span class="status ${cls}">${status}</span></div><div class="order-lines">${(state.products.find(p=>p.id===a.productId)?.category==="child"?CHILD_SIZES:SIZES).filter(s=>a.quantities[s]).map(s=>`${s}: ${a.quantities[s]} piezas`).join(" · ")}</div><div class="order-meta">Total: ${money(a.total)} · Anticipo: ${money(a.deposit)} · Resta: ${money(a.remaining||0)}</div>${a.status==="pending"?`<div class="modal-buttons" style="margin-top:12px"><button class="btn green" onclick="finishApartado('${a.id}')">TERMINAR DE PAGAR</button><button class="btn light" onclick="releaseApartado('${a.id}')">LIBERAR</button></div>`:''}</div>`;
  }).join("");
 }
 
@@ -2752,11 +2797,13 @@ function resetOrderLine(){
  orderType="existing";
  chooseOrderType("existing");
  const sel=document.getElementById("orderExistingProduct");
+ sel.onchange=toggleOrderChildSizes;
  sel.innerHTML=state.products.length?state.products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join(""):`<option value="">No hay equipos creados</option>`;
  document.getElementById("orderNewName").value="";
  document.getElementById("orderCost").value="";
  document.getElementById("orderSalePrice").value="";
- SIZES.forEach(size=>{document.getElementById("o"+size).value=0;});
+ ALL_SIZES.forEach(size=>{document.getElementById("o"+size).value=0;});
+ toggleOrderChildSizes();
  updateOrderPreview();
 }
 function openOrderModal(){
@@ -2767,7 +2814,7 @@ function openOrderModal(){
 }
 function orderQuantities(){
  const q={};
- SIZES.forEach(s=>q[s]=Number(document.getElementById("o"+s).value)||0);
+ ALL_SIZES.forEach(s=>q[s]=Number(document.getElementById("o"+s).value)||0);
  return q;
 }
 function currentOrderLine(){
@@ -2781,7 +2828,8 @@ function currentOrderLine(){
   const p=state.products.find(x=>x.id===productId);
   productName=p?p.name:"";
  }else productName=document.getElementById("orderNewName").value.trim();
- return {productId,productName,quantities:q,pieces,cost,salePrice,total:pieces*(Number.isFinite(cost)?cost:0)};
+ const category=orderType==="new"?(document.getElementById("orderNewCategory")?.value==="child"?"child":"adult"):(state.products.find(x=>x.id===productId)?.category==="child"?"child":"adult");
+ return {productId,productName,category,quantities:q,pieces,cost,salePrice,total:pieces*(Number.isFinite(cost)?cost:0)};
 }
 function updateOrderPreview(){
  const line=currentOrderLine();
@@ -2806,7 +2854,7 @@ function renderOrderDraft(){
  const e=document.getElementById("orderDraftList"); if(!e)return;
  if(!orderDraftItems.length){e.innerHTML='<div class="analysis-note">Todavía no has agregado equipos.</div>';updateOrderPreview();return;}
  e.innerHTML=orderDraftItems.map((x,i)=>{
-  const sizes=SIZES.filter(s=>Number(x.quantities?.[s]||0)>0).map(s=>`${s}: ${x.quantities[s]}`).join(" · ");
+  const sizes=(x.category==="child"?CHILD_SIZES:SIZES).filter(s=>Number(x.quantities?.[s]||0)>0).map(s=>`${s}: ${x.quantities[s]}`).join(" · ");
   return `<div class="report-line" style="align-items:flex-start"><span><strong>${esc(x.productName)}</strong><br><small>${sizes} · ${x.pieces} pz · ${money(x.cost)} c/u · Venta ${money(x.salePrice)} c/u</small></span><span style="display:flex;align-items:center;gap:8px"><strong>${money(x.total)}</strong><button class="btn light" style="padding:6px 8px" onclick="removeOrderDraftItem(${i})">✕</button></span></div>`;
  }).join("");
  updateOrderPreview();
@@ -2829,7 +2877,8 @@ function createOrder(){
  const items=orderDraftItems.map(x=>({...x,quantities:{...x.quantities}}));
  items.forEach(item=>{
   if(!item.productId){
-   const newProduct={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,stock:{S:0,M:0,L:0,XL:0,"2XL":0,"3XL":0,"4XL":0}};
+   const newProduct={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,category:item.category||"adult",stock:{}};
+   ALL_SIZES.forEach(sz=>newProduct.stock[sz]=0);
    state.products.push(newProduct); item.productId=newProduct.id;
     state.growthCycle=state.growthCycle||{};
     state.growthCycle.productTrackingStart=state.growthCycle.productTrackingStart||{};
@@ -2839,7 +2888,7 @@ function createOrder(){
  const order={id:crypto.randomUUID(),number:state.orders.length+1,date:today(),status:"pending",productId:items.length===1?items[0].productId:null,productName:items.length===1?items[0].productName:`${items.length} equipos`,cost:items.length===1?items[0].cost:0,salePrice:items.length===1?items[0].salePrice:0,quantities:items.length===1?items[0].quantities:{},pieces:totalPieces,total,items,received:false};
  state.orders.push(order);
  if(total===0){
-  items.forEach(item=>{const p=state.products.find(x=>x.id===item.productId);if(!p)return;SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities[size])||0));});
+  items.forEach(item=>{const p=state.products.find(x=>x.id===item.productId);if(!p)return;ALL_SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities[size])||0));});
   order.received=true;order.status="received";order.receivedDate=today();
   state.registeredPieces=(Number(state.registeredPieces)||0)+Number(order.pieces||0);
   order.registered=true;
@@ -2854,7 +2903,7 @@ function receiveOrder(id){
  const items=Array.isArray(o.items)&&o.items.length?o.items:[{productId:o.productId,productName:o.productName,cost:o.cost,salePrice:o.salePrice,quantities:o.quantities||{},pieces:o.pieces||0}];
  items.forEach(item=>{
   let p=state.products.find(x=>x.id===item.productId);
-  if(!p){p={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,stock:{S:0,M:0,L:0,XL:0,"2XL":0,"3XL":0,"4XL":0}};state.products.push(p);item.productId=p.id;}
+  if(!p){p={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,category:item.category||"adult",stock:{}};ALL_SIZES.forEach(sz=>p.stock[sz]=0);state.products.push(p);item.productId=p.id;}
   p.price=Number(item.salePrice)||p.price;p.cost=Number(item.cost)||p.cost;
   SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities?.[size])||0));
  });
@@ -2865,7 +2914,7 @@ function renderOrders(){
  if(!state.orders.length){e.innerHTML='<div class="card empty">Todavía no tienes pedidos.</div>';return;}
  e.innerHTML=state.orders.slice().reverse().map(o=>{
   const items=Array.isArray(o.items)&&o.items.length?o.items:[{productName:o.productName,cost:o.cost,salePrice:o.salePrice,quantities:o.quantities||{},pieces:o.pieces||0}];
-  const itemHtml=items.map(item=>{const sizes=SIZES.filter(s=>Number(item.quantities?.[s]||0)>0).map(s=>`${s}: ${item.quantities[s]}`).join(" · ");return `<div class="order-lines"><strong>${esc(item.productName)}</strong><br>${sizes} · ${item.pieces} piezas · Costo ${money(item.cost)} c/u · Venta ${money(item.salePrice)} c/u</div>`;}).join("");
+  const itemHtml=items.map(item=>{const sizes=(item.category==="child"?CHILD_SIZES:SIZES).filter(s=>Number(item.quantities?.[s]||0)>0).map(s=>`${s}: ${item.quantities[s]}`).join(" · ");return `<div class="order-lines"><strong>${esc(item.productName)}</strong><br>${sizes} · ${item.pieces} piezas · Costo ${money(item.cost)} c/u · Venta ${money(item.salePrice)} c/u</div>`;}).join("");
   return `<div class="order-card"><div class="order-head"><div><div class="order-name">Pedido #${String(o.number).padStart(3,"0")}</div><div class="order-meta">${fmtDate(o.date)} · ${items.length} equipo${items.length===1?'':'s'}</div></div><span class="status ${o.received?'received':''}">${o.received?'RECIBIDO':'PENDIENTE DE RECIBIR'}</span></div>${itemHtml}<div class="order-total">Total del pedido: ${money(o.total)}</div>${!o.received?`<button class="btn green" style="width:100%;margin-top:13px" onclick="receiveOrder('${o.id}')">RECIBIDO</button>`:`<div class="info-box success-text">✓ ${o.pieces} piezas agregadas al inventario.</div>`}</div>`;
  }).join("");
 }
@@ -3750,7 +3799,7 @@ function closeDay(){
 function startOfBusinessWeek(date){const d=new Date(date+"T12:00:00");const w=d.getDay();d.setDate(d.getDate()+(w===0?-6:1-w));return d.toISOString().slice(0,10);}
 function addDaysKey(date,n){const d=new Date(date+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function businessWeekStats(ws){let mv=[];for(let i=0;i<7;i++){const d=state.days[addDaysKey(ws,i)];if(d)mv.push(...(d.movements||[]));}const sales=mv.filter(m=>m.type==="sale");const expenses=mv.filter(m=>m.type==="expense"||m.type==="worker");const salesTotal=sales.reduce((a,m)=>a+Number(m.amount)||0,0);const pieces=sales.reduce((a,m)=>a+Number(m.quantity||m.pieces)||0,0);const cogs=sales.reduce((a,m)=>{const p=state.products.find(x=>x.id===m.productId);return a+(m.unitCost!=null?Number(m.unitCost):Number(p?.cost)||0)*(Number(m.quantity||m.pieces)||0)},0);const gross=salesTotal-cogs;const gastos=expenses.reduce((a,m)=>a+Number(m.amount)||0,0);return{salesTotal,pieces,cogs,gross,margin:salesTotal?gross/salesTotal:0,gastos,net:gross-gastos};}
-function currentInventoryAnalysis(){let pieces=0,cost=0,potential=0;(state.products||[]).forEach(p=>{const q=SIZES.reduce((a,x)=>a+(Number(p.stock?.[x])||0),0);pieces+=q;cost+=q*(Number(p.cost)||0);potential+=q*(Number(p.price)||0)});return{pieces,cost,potential};}
+function currentInventoryAnalysis(){let pieces=0,cost=0,potential=0;(state.products||[]).forEach(p=>{const q=productSizes(p).reduce((a,x)=>a+(Number(p.stock?.[x])||0),0);pieces+=q;cost+=q*(Number(p.cost)||0);potential+=q*(Number(p.price)||0)});return{pieces,cost,potential};}
 function renderBusinessAnalysis(){const box=document.getElementById("businessAnalysis");if(!box)return;const ws=startOfBusinessWeek(today()),cur=businessWeekStats(ws),prev=businessWeekStats(addDaysKey(ws,-7)),inv=currentInventoryAnalysis();const hasPrev=Object.keys(state.days||{}).some(k=>k>=addDaysKey(ws,-7)&&k<ws);const growth=hasPrev&&prev.salesTotal?(cur.salesTotal-prev.salesTotal)/prev.salesTotal:null;let status="🟡 NEGOCIO ESTABLE",bg="#777";if(hasPrev&&cur.salesTotal>prev.salesTotal&&cur.net>=prev.net){status="🟢 NEGOCIO CRECIENDO";bg="#16803c"}else if(hasPrev&&cur.salesTotal<prev.salesTotal&&cur.net<prev.net){status="🔴 NEGOCIO RETROCEDIENDO";bg="#d92d20"}const all=allMovements().filter(m=>m.type==="sale");const rev=all.reduce((a,m)=>a+Number(m.amount)||0,0),pcs=all.reduce((a,m)=>a+Number(m.quantity||m.pieces)||0,0),cogs=all.reduce((a,m)=>{const p=state.products.find(x=>x.id===m.productId);return a+(m.unitCost!=null?Number(m.unitCost):Number(p?.cost)||0)*(Number(m.quantity||m.pieces)||0)},0),pct=n=>(n*100).toFixed(1)+"%";box.innerHTML=`<details class="report-card collapsible"><summary><span>🧠 Análisis del negocio</span></summary><div class="collapse-body"><div class="card" style="margin:0;border:0;box-shadow:none"><h3 style="margin:0">ANÁLISIS DEL NEGOCIO</h3><div style="color:var(--muted);font-size:12px;margin-top:4px">Desde el primer registro disponible</div><div class="analysis-status" style="background:${bg}">${status}<small>${growth==null?"Aún no hay una semana anterior para comparar.":(growth>=0?"+":"")+pct(growth)+" en ventas contra la semana anterior."}</small></div><div class="analysis-grid"><div class="analysis-metric"><span>Ventas semana</span><strong>${money(cur.salesTotal)}</strong></div><div class="analysis-metric"><span>Piezas vendidas</span><strong>${cur.pieces}</strong></div><div class="analysis-metric"><span>Costo mercancía vendida</span><strong>${money(cur.cogs)}</strong></div><div class="analysis-metric"><span>Utilidad bruta</span><strong>${money(cur.gross)}</strong></div><div class="analysis-metric"><span>Margen bruto</span><strong>${pct(cur.margin)}</strong></div><div class="analysis-metric"><span>Gastos del negocio</span><strong>${money(cur.gastos)}</strong></div><div class="analysis-metric"><span>Utilidad después de gastos</span><strong>${money(cur.net)}</strong></div><div class="analysis-metric"><span>Rotación acumulada</span><strong>${(pcs/(pcs+inv.pieces||1)).toFixed(2)}x</strong></div></div><div class="analysis-note"><strong>Inventario actual</strong><br>${inv.pieces} piezas · Costo ${money(inv.cost)} · Venta potencial ${money(inv.potential)} · Utilidad potencial ${money(inv.potential-inv.cost)}</div><div class="analysis-note"><strong>Acumulado desde el primer registro</strong><br>${pcs} piezas vendidas · ${money(rev)} en ventas · ${money(cogs)} de costo · ${money(rev-cogs)} de utilidad bruta.</div></div></div></details>`;}
 
 /* =========================
