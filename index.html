@@ -56,7 +56,7 @@ header{padding:20px 18px 10px}
 
 .balance-sub{margin-top:7px;font-size:13px;opacity:.6}
 
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions .action:nth-child(3){grid-column:1 / -1;width:50%;justify-self:center}
 
 .action{
 
@@ -120,7 +120,7 @@ header{padding:20px 18px 10px}
 
 .product-info{font-size:12px;color:var(--muted);margin-top:3px}
 
-.sizes{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--line)}
+.sizes{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line);width:100%;overflow:visible}
 
 .size{padding:11px 3px;text-align:center;border-right:1px solid var(--line)}
 
@@ -582,16 +582,7 @@ body{background:#030006;color:var(--text)}
 
     </button>
 
-    <button class="action green" onclick="openIncomeModal()">
-
-      ＋ Ingreso
-
-      <small>Entrada de dinero</small>
-
-    </button>
-
-  
-<button class="action" onclick="openWithdrawalModal()">
+    <button class="action" onclick="openWithdrawalModal()">
 
       − Retiro
 
@@ -599,7 +590,7 @@ body{background:#030006;color:var(--text)}
 
     </button>
 
-    </div>
+  </div>
 
   <div class="section-title">Resumen de hoy</div>
 
