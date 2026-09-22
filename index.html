@@ -56,7 +56,7 @@ header{padding:20px 18px 10px}
 
 .balance-sub{margin-top:7px;font-size:13px;opacity:.6}
 
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions .action:nth-child(3){grid-column:1 / -1;width:50%;justify-self:center}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 .action{
 
@@ -582,15 +582,7 @@ body{background:#030006;color:var(--text)}
 
     </button>
 
-    <button class="action" onclick="openWithdrawalModal()">
-
-      − Retiro
-
-      <small>Dinero personal</small>
-
-    </button>
-
-    <button class="action" onclick="openIncomeModal()">
+    <button class="action green" onclick="openIncomeModal()">
 
       ＋ Ingreso
 
@@ -598,7 +590,16 @@ body{background:#030006;color:var(--text)}
 
     </button>
 
-  </div>
+  
+<button class="action" onclick="openWithdrawalModal()">
+
+      − Retiro
+
+      <small>Dinero personal</small>
+
+    </button>
+
+    </div>
 
   <div class="section-title">Resumen de hoy</div>
 
@@ -1418,6 +1419,15 @@ function productSizes(p){return p?.category==="child"?CHILD_SIZES:SIZES;}
 
 let state=JSON.parse(localStorage.getItem(KEY)||"null");
 
+// Normaliza productos antiguos: adulto/normal siempre contempla 4XL.
+if(state && Array.isArray(state.products)){
+ state.products.forEach(p=>{
+  p.category=p.category==="child"?"child":"adult";
+  p.stock=p.stock||{};
+  if(p.category==="adult") p.stock["4XL"]=Number(p.stock["4XL"])||0;
+ });
+}
+
 let movementType="expense";
 
 let selectedDay=null;
@@ -1732,6 +1742,8 @@ function saveProduct(){
   price,
 
   cost,
+
+  category,
 
   stock
 
@@ -2346,7 +2358,7 @@ function renderInventory(){
   <div class="inventory-card">
    <div class="product-head">
     <div><div class="product-name">${esc(p.name)}</div><div class="product-info">Venta ${money(p.price)} · Costo ${money(p.cost)}</div></div>
-    <div style="display:flex;align-items:center;gap:8px"><strong>${SIZES.reduce((a,s)=>a+(p.stock[s]||0),0)}</strong><button class="btn light" style="padding:7px 9px;font-size:11px" onclick="openEditProduct('${p.id}')">EDITAR PRECIOS</button></div>
+    <div style="display:flex;align-items:center;gap:8px"><strong>${productSizes(p).reduce((a,s)=>a+(p.stock[s]||0),0)}</strong><button class="btn light" style="padding:7px 9px;font-size:11px" onclick="openEditProduct('${p.id}')">EDITAR PRECIOS</button></div>
    </div>
    <div class="sizes">${productSizes(p).map(s=>`<div class="size"><label>${s}</label><strong>${p.stock[s]||0}</strong><button onclick="quickSale('${p.id}','${s}')">− vender</button></div>`).join("")}</div>
   </div>
@@ -2913,7 +2925,7 @@ function receiveOrder(id){
   let p=state.products.find(x=>x.id===item.productId);
   if(!p){p={id:crypto.randomUUID(),name:item.productName,price:item.salePrice,cost:item.cost,category:item.category||"adult",stock:{}};ALL_SIZES.forEach(sz=>p.stock[sz]=0);state.products.push(p);item.productId=p.id;}
   p.price=Number(item.salePrice)||p.price;p.cost=Number(item.cost)||p.cost;
-  SIZES.forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities?.[size])||0));
+  (item.category==="child"?CHILD_SIZES:SIZES).forEach(size=>p.stock[size]=(Number(p.stock[size])||0)+(Number(item.quantities?.[size])||0));
  });
  o.received=true;o.status="received";o.receivedDate=today();ensureRegisteredPieces();state.registeredPieces=(Number(state.registeredPieces)||0)+Number(o.pieces||0);o.registered=true;save();render();alert(`Pedido recibido.\n\n${o.pieces} piezas agregadas al inventario.`);
 }
