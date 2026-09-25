@@ -1114,7 +1114,7 @@ body{background:#030006;color:var(--text)}
   <div class="field">
 
     <label>PRODUCTO</label>
-
+    <input id="saleProductSearch" type="search" placeholder="Escribe para buscar: B, BA, BAR..." autocomplete="off" oninput="filterProductSelect('saleProduct','saleProductSearch')">
     <select id="saleProduct" onchange="salePrice.value=state.products.find(p=>p.id===this.value)?.price||0"></select>
 
   </div>
@@ -1190,6 +1190,7 @@ body{background:#030006;color:var(--text)}
 
   <div class="field">
     <label>EQUIPO</label>
+    <input id="apartadoProductSearch" type="search" placeholder="Escribe para buscar: B, BA, BAR..." autocomplete="off" oninput="filterProductSelect('apartadoProduct','apartadoProductSearch')">
     <select id="apartadoProduct" onchange="renderApartadoSizes()"></select>
   </div>
 
@@ -1241,7 +1242,7 @@ body{background:#030006;color:var(--text)}
   </div>
 
   <div id="existingTeamBox">
-    <div class="field"><label>EQUIPO EXISTENTE</label><select id="orderExistingProduct"></select></div>
+    <div class="field"><label>EQUIPO EXISTENTE</label><input id="orderExistingProductSearch" type="search" placeholder="Escribe para buscar: B, BA, BAR..." autocomplete="off" oninput="filterProductSelect('orderExistingProduct','orderExistingProductSearch')"><select id="orderExistingProduct"></select></div>
   </div>
   <div id="newTeamBox" style="display:none">
     <div class="field"><label>NOMBRE DEL NUEVO EQUIPO</label><input id="orderNewName" placeholder="Ej. Inter Miami visitante"></div>
@@ -1330,7 +1331,7 @@ body{background:#030006;color:var(--text)}
   <div class="field">
 
     <label>EQUIPO</label>
-
+    <input id="adjustProductSearch" type="search" placeholder="Escribe para buscar: B, BA, BAR..." autocomplete="off" oninput="filterProductSelect('adjustProduct','adjustProductSearch')">
     <select id="adjustProduct" onchange="renderAdjustSizes()"></select>
 
   </div>
@@ -2175,6 +2176,35 @@ function saveMovement(){
 }
 
 /* =========================
+   BUSCADOR DE EQUIPOS
+   Filtra por las letras escritas, en tiempo real.
+========================= */
+function filterProductSelect(selectId, searchId){
+ const sel=document.getElementById(selectId);
+ const input=document.getElementById(searchId);
+ if(!sel||!input||!state||!Array.isArray(state.products))return;
+ const term=String(input.value||'').trim().toLocaleLowerCase('es-MX');
+ const current=sel.value;
+ const products=state.products.filter(p=>{
+   const name=String(p.name||'').toLocaleLowerCase('es-MX');
+   return !term || name.startsWith(term);
+ });
+ if(!products.length){
+   sel.innerHTML='<option value="">No hay equipos que coincidan</option>';
+   return;
+ }
+ sel.innerHTML=products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}${p.price!=null?` — ${money(p.price)}`:''}</option>`).join('');
+ if(products.some(p=>p.id===current)) sel.value=current;
+ else sel.selectedIndex=0;
+ sel.dispatchEvent(new Event('change'));
+}
+
+function resetProductSearch(searchId){
+ const input=document.getElementById(searchId);
+ if(input)input.value='';
+}
+
+/* =========================
 
    VENTAS
 
@@ -2182,6 +2212,7 @@ function saveMovement(){
 
 function openSaleModal(){
  if(!assertDayOpen())return;
+ resetProductSearch('saleProductSearch');
  const available=state.products.filter(p=>
 
   productSizes(p).some(s=>(p.stock[s]||0)>0)
@@ -2460,6 +2491,7 @@ function openAdjustModal(){
 
  }
 
+ resetProductSearch('adjustProductSearch');
  adjustProduct.innerHTML=state.products
 
  .map(p=>
@@ -2663,6 +2695,7 @@ function apartadoQuantities(){
 
 function openApartadoModal(){
  if(!assertDayOpen())return;
+ resetProductSearch('apartadoProductSearch');
  ensureApartados();
  if(!state.products.length)return alert("Primero crea un equipo en el inventario.");
  const customerEl=document.getElementById("apartadoCustomer");
@@ -2814,6 +2847,7 @@ function chooseOrderType(type){
 let orderDraftItems=[];
 function resetOrderLine(){
  orderType="existing";
+ resetProductSearch('orderExistingProductSearch');
  chooseOrderType("existing");
  const sel=document.getElementById("orderExistingProduct");
  sel.onchange=toggleOrderChildSizes;
