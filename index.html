@@ -660,6 +660,10 @@ body{background:#030006;color:var(--text)}
 
   </button>
 
+  <div class="field" style="margin-bottom:12px">
+    <label>BUSCAR EQUIPO</label>
+    <input id="inventoryProductSearch" type="search" placeholder="Escribe para buscar: B, BA, BAR..." autocomplete="off" oninput="renderInventory()">
+  </div>
   <div id="inventoryList"></div>
   <div id="inventoryTotalSummary" class="card" style="margin-top:14px;padding:14px"></div>
   <details class="report-card collapsible" style="margin-top:14px">
@@ -2379,12 +2383,20 @@ function renderHistoricalInventory(){
 function renderInventory(){
  const e=document.getElementById("inventoryList");
  const summary=document.getElementById("inventoryTotalSummary");
+ const search=document.getElementById("inventoryProductSearch");
+ const term=String(search?.value||'').trim().toLocaleLowerCase('es-MX');
  if(!state.products.length){
   e.innerHTML='<div class="card empty">Todavía no tienes inventario.</div>';
   if(summary)summary.innerHTML='';
   return;
  }
- e.innerHTML=state.products.map(p=>`
+ const visibleProducts=state.products.filter(p=>{
+  const name=String(p.name||'').toLocaleLowerCase('es-MX');
+  return !term || name.startsWith(term);
+ });
+ if(!visibleProducts.length){
+  e.innerHTML='<div class="card empty">No hay equipos que coincidan con la búsqueda.</div>';
+ }else e.innerHTML=visibleProducts.map(p=>`
   <div class="inventory-card">
    <div class="product-head">
     <div><div class="product-name">${esc(p.name)}</div><div class="product-info">Venta ${money(p.price)} · Costo ${money(p.cost)}</div></div>
